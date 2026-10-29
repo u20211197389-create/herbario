@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 70 180 220" fill="none">
+  <path d="M120 250C60 238 36 180 44 90c34 22 58 62 76 160Z" fill="#3f7b2e" stroke="#2c5a20" stroke-width="3"/>
+  <path d="M120 250c60-12 84-70 76-160-34 22-58 62-76 160Z" fill="#3f7b2e" stroke="#2c5a20" stroke-width="3"/>
+  <path d="M120 250C92 190 70 140 52 96m68 154c28-60 50-110 68-154" stroke="#d9e6c8" stroke-width="4" stroke-linecap="round"/>
+  <text x="120" y="188" text-anchor="middle" font-family="Georgia, serif" font-size="90" fill="#111">S</text>
+</svg>
