@@ -18,13 +18,13 @@ npm.cmd run dev
 ```
 
 - Sitio público: `http://127.0.0.1:5173`
-- Administración: `http://127.0.0.1:5173/admin/` (también hay un enlace «Administrador» en la barra superior).
+- Administración: `http://127.0.0.1:5173/admin/` (no hay enlace en el sitio público; se entra escribiendo la dirección).
 
 Variables opcionales: `PORT`, `HOST` (por defecto `127.0.0.1`), `HERBARIO_DATA` (carpeta de datos), `HERBARIO_DB` (archivo de la base) y `HERBARIO_SECURE=1` si se publica con HTTPS.
 
 ## Panel de administración
 
-Permite agregar, editar y eliminar: **Especímenes**, **Publicaciones**, **Biblioteca**, **Integrantes**, **Textos del sitio** (misión, fundador, historia, términos, teléfono, dirección, Instagram) y **Usuarios**. Cada lista admite importar, exportar y descargar plantilla CSV, y las imágenes (portadas y fotos) se suben como PNG, JPG o WEBP de hasta 3 MB.
+Permite agregar, editar y eliminar: **Especímenes**, **Publicaciones**, **Biblioteca**, **Integrantes**, **Acerca** (introducción, misión, fundador, historia, términos), **Contacto** (teléfono, dirección, Instagram) y **Usuarios**. Cada lista admite importar, exportar y descargar plantilla CSV, y las imágenes (portadas y fotos) se suben como PNG, JPG o WEBP de hasta 3 MB.
 
 **Cifras** no se edita a mano: se calcula con los especímenes (el número de «Ejemplares tipo» sale de la casilla «Es ejemplar tipo» de cada espécimen).
 
