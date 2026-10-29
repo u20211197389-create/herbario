@@ -67,12 +67,141 @@ const catalogLabel = (specimen) => `SURCO${String(specimen.catalogNumber).padSta
 const collectorLabel = (specimen) => `${specimen.collectors.split(',')[0].trim()} ${specimen.collectionNumber}`;
 const placeLabel = (specimen) => [specimen.country, specimen.department, specimen.municipality].filter(Boolean).join(', ');
 
+// Visor con zoom: botones + / − / inicio / pantalla completa, rueda del ratón, arrastre, gestos táctiles y minimapa.
+const zoomViewer = (src, alt) => {
+  const box = createElement('div', 'zoom-viewer');
+  const img = document.createElement('img');
+  img.className = 'zoom-img';
+  img.alt = alt;
+  img.draggable = false;
+  const bar = createElement('div', 'zoom-tools');
+  const nav = createElement('div', 'zoom-nav');
+  const thumb = document.createElement('img');
+  thumb.alt = '';
+  thumb.draggable = false;
+  const frame = createElement('div', 'zoom-frame');
+  nav.append(thumb, frame);
+
+  let s = 1; let tx = 0; let ty = 0; let fit = 1;
+  const MAX = 8;
+  const size = () => ({ w: box.clientWidth, h: box.clientHeight });
+  const clamp = () => {
+    const { w, h } = size();
+    const iw = img.naturalWidth * s; const ih = img.naturalHeight * s;
+    tx = iw <= w ? (w - iw) / 2 : Math.min(0, Math.max(w - iw, tx));
+    ty = ih <= h ? (h - ih) / 2 : Math.min(0, Math.max(h - ih, ty));
+  };
+  const apply = () => {
+    clamp();
+    img.style.transform = `translate(${tx}px, ${ty}px) scale(${s})`;
+    const { w, h } = size();
+    const k = nav.clientWidth / (img.naturalWidth || 1);
+    const vx = Math.max(0, -tx / s); const vy = Math.max(0, -ty / s);
+    const vw = Math.min(img.naturalWidth, w / s); const vh = Math.min(img.naturalHeight, h / s);
+    frame.style.left = `${vx * k}px`; frame.style.top = `${vy * k}px`;
+    frame.style.width = `${vw * k}px`; frame.style.height = `${vh * k}px`;
+  };
+  const home = () => {
+    const { w, h } = size();
+    fit = Math.min(w / img.naturalWidth, h / img.naturalHeight);
+    s = fit; tx = 0; ty = 0; apply();
+  };
+  const zoomAt = (factor, cx, cy) => {
+    const next = Math.min(fit * MAX, Math.max(fit, s * factor));
+    const k = next / s;
+    tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; s = next; apply();
+  };
+  const center = (factor) => { const { w, h } = size(); zoomAt(factor, w / 2, h / 2); };
+
+  const button = (label, title, onClick) => {
+    const b = createElement('button', 'zoom-btn', label);
+    b.type = 'button'; b.title = title; b.setAttribute('aria-label', title);
+    b.addEventListener('click', onClick);
+    return b;
+  };
+  bar.append(
+    button('+', 'Acercar', () => center(1.5)),
+    button('−', 'Alejar', () => center(1 / 1.5)),
+    button('⌂', 'Vista inicial', home),
+    button('⛶', 'Pantalla completa', () => {
+      if (document.fullscreenElement) document.exitFullscreen();
+      else if (box.requestFullscreen) box.requestFullscreen();
+    }),
+  );
+
+  const pointers = new Map();
+  let pinch = 0;
+  box.addEventListener('pointerdown', (e) => {
+    if (e.target.closest('.zoom-tools')) return;
+    box.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    box.classList.add('is-dragging');
+  });
+  box.addEventListener('pointermove', (e) => {
+    const p = pointers.get(e.pointerId);
+    if (!p) return;
+    const rect = box.getBoundingClientRect();
+    if (pointers.size === 2) {
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      const [a, b] = [...pointers.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) zoomAt(dist / pinch, (a.x + b.x) / 2 - rect.left, (a.y + b.y) / 2 - rect.top);
+      pinch = dist;
+      return;
+    }
+    tx += e.clientX - p.x; ty += e.clientY - p.y;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    apply();
+  });
+  const release = (e) => {
+    pointers.delete(e.pointerId); pinch = 0;
+    if (!pointers.size) box.classList.remove('is-dragging');
+  };
+  box.addEventListener('pointerup', release);
+  box.addEventListener('pointercancel', release);
+  box.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    const rect = box.getBoundingClientRect();
+    zoomAt(e.deltaY < 0 ? 1.2 : 1 / 1.2, e.clientX - rect.left, e.clientY - rect.top);
+  }, { passive: false });
+  box.addEventListener('dblclick', (e) => {
+    const rect = box.getBoundingClientRect();
+    zoomAt(2, e.clientX - rect.left, e.clientY - rect.top);
+  });
+  nav.addEventListener('pointerdown', (e) => {
+    e.stopPropagation();
+    const move = (ev) => {
+      const r = nav.getBoundingClientRect(); const k = r.width / img.naturalWidth;
+      const { w, h } = size();
+      tx = w / 2 - ((ev.clientX - r.left) / k) * s; ty = h / 2 - ((ev.clientY - r.top) / k) * s; apply();
+    };
+    move(e);
+    const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); };
+    window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  });
+  nav.addEventListener('wheel', (e) => e.stopPropagation());
+
+  // Se reajusta al cambiar el tamaño (vista oculta al cargar, pantalla completa, rotación).
+  new ResizeObserver(() => { if (img.naturalWidth && box.clientWidth) home(); }).observe(box);
+  img.addEventListener('load', () => { thumb.src = src; requestAnimationFrame(() => { if (box.clientWidth) home(); }); });
+  img.addEventListener('error', () => { box.replaceChildren(createElement('span', 'zoom-error', 'No se pudo cargar la imagen.')); });
+  img.src = src;
+  box.append(img, bar, nav);
+  return box;
+};
+
 const specimenPicture = (specimen, className, size) => {
   if (!specimen.image) return createElement('div', className, 'Sin imagen');
+  const alt = `Fotografía del ejemplar ${catalogLabel(specimen)}`;
+  if (size === 'detail') {
+    const wrap = createElement('div', `${className} has-image has-zoom`);
+    wrap.append(zoomViewer(specimen.image, alt));
+    return wrap;
+  }
   const box = createElement('div', `${className} has-image`);
   const img = document.createElement('img');
   img.src = specimen.image;
-  img.alt = `Fotografía del ejemplar ${catalogLabel(specimen)}`;
+  img.alt = alt;
   img.loading = size === 'card' ? 'lazy' : 'eager';
   box.append(img);
   return box;
