@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "node server/index.js",
     "start": "node server/index.js",
+    "publicar": "node scripts/build-static.js",
     "crear-admin": "node server/create-admin.js"
   }
 }

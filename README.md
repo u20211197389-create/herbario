@@ -65,3 +65,10 @@ Los datos se guardan en SQLite. El esquema PostgreSQL y el script de Director de
 - La plantilla no trae el identificador de instituci√≥n que exige la tabla SQL, y las coordenadas decimales est√°n fuera de rango; no se inventaron esos datos.
 - No hay datos de altura, nombre com√∫n ni ejemplares tipo; se pueden completar desde el panel.
 - Los textos institucionales (misi√≥n, historia, fundador, tarifas) siguen pendientes hasta que se escriban en el panel (las tarifas a√∫n est√°n fijas en `index.html`).
+## Publicar la parte p˙blica en lÌnea (GitHub Pages)
+
+1. `npm run publicar` genera `docs/` con el sitio est·tico (sin administraciÛn).
+2. `git add -A`, `git commit -m "Publicar sitio"` y `git push`.
+3. En GitHub: Settings ? Pages ? Branch `main` y carpeta `/docs`.
+
+El sitio queda en https://u20211197389-create.github.io/herbario/. Cada vez que cambies datos en el panel, repite los pasos 1 y 2.

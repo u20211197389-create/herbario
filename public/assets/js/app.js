@@ -93,7 +93,7 @@ const renderResults = () => {
   const fragment = document.createDocumentFragment();
   currentResults.forEach((specimen) => {
     const card = createElement('a', 'specimen-card');
-    card.href = `/ejemplar/${encodeURIComponent(specimen.catalogNumber)}/`;
+    card.href = `${BASE}/ejemplar/${encodeURIComponent(specimen.catalogNumber)}/`;
     card.append(
       specimenPicture(specimen, 'no-image', 'card'),
       createLine('catalog', catalogLabel(specimen), 'is-id'),
@@ -264,7 +264,9 @@ const downloadXlsx = (list) => {
 };
 
 const VIEW_PATHS = ['especimenes', 'busqueda-avanzada', 'acerca', 'cifras', 'servicios', 'biblioteca', 'publicaciones', 'contacto'];
-const toPath = (route) => (route === 'inicio' ? '/' : `/${route}/`);
+// Con publicación estática en un subdirectorio (p. ej. GitHub Pages), data.js define SITE_BASE.
+const BASE = window.SITE_BASE || '';
+const toPath = (route) => (route === 'inicio' ? `${BASE}/` : `${BASE}/${route}/`);
 
 // Los enlaces internos del HTML se escriben como #vista y aquí se convierten en rutas limpias (/vista/).
 document.querySelectorAll('a[href^="#"]').forEach((link) => {
@@ -277,7 +279,8 @@ const currentRoute = () => {
   if (legacy && (legacy === 'inicio' || VIEW_PATHS.includes(legacy) || legacy.startsWith('ejemplar/'))) {
     window.history.replaceState({}, '', toPath(legacy.startsWith('ejemplar/') ? legacy : legacy));
   }
-  return decodeURIComponent(window.location.pathname).replace(/^\/+|\/+$/g, '') || 'inicio';
+  const pathname = BASE && window.location.pathname.startsWith(BASE) ? window.location.pathname.slice(BASE.length) : window.location.pathname;
+  return decodeURIComponent(pathname).replace(/^\/+|\/+$/g, '') || 'inicio';
 };
 
 const navigate = (path) => {
@@ -308,10 +311,10 @@ const showResults = (results, description) => {
   currentResults = results;
   currentDescription = description;
   renderResults();
-  if (window.location.pathname === '/especimenes/') {
+  if (window.location.pathname === toPath('especimenes')) {
     showView();
   } else {
-    navigate('/especimenes/');
+    navigate(toPath('especimenes'));
   }
 };
 
@@ -704,7 +707,7 @@ document.addEventListener('click', (event) => {
   if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || link.target) return;
   const url = new URL(link.href, window.location.href);
   const internal = url.origin === window.location.origin && !url.hash
-    && !/^\/(admin|uploads|assets)(\/|$)/.test(url.pathname);
+    && !new RegExp(`^${BASE}/(admin|uploads|assets)(/|$)`).test(url.pathname);
   if (!internal) return;
   event.preventDefault();
   navigate(url.pathname);
