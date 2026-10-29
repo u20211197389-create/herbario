@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Administración · Herbario SURCO</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <main id="login-view" class="login" hidden>
+    <form id="login-form" class="login-card" autocomplete="on">
+      <h1>Herbario SURCO</h1>
+      <p>Acceso de administradores</p>
+      <label>Usuario<input id="login-user" name="username" autocomplete="username" required maxlength="60"></label>
+      <label>Contraseña<input id="login-pass" name="password" type="password" autocomplete="current-password" required maxlength="200"></label>
+      <p id="login-error" class="error" role="alert"></p>
+      <button class="btn" type="submit">Entrar</button>
+      <a class="back" href="/">← Volver al sitio</a>
+    </form>
+  </main>
+
+  <div id="app-view" hidden>
+    <header class="bar">
+      <strong>Administración · Herbario SURCO</strong>
+      <span class="spacer"></span>
+      <a href="/" target="_blank" rel="noopener">Ver sitio</a>
+      <span id="who"></span>
+      <button id="logout" class="btn ghost" type="button">Salir</button>
+    </header>
+    <nav id="tabs" class="tabs" aria-label="Secciones"></nav>
+    <section id="panel" class="panel"></section>
+  </div>
+
+  <dialog id="editor"><form method="dialog" id="editor-form"></form></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+</body>
+</html>

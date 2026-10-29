@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Herbario SURCO de la Universidad Surcolombiana: consulta los datos de colecta de sus especímenes.">
+  <title>Herbario SURCO | Universidad Surcolombiana</title>
+  <link rel="stylesheet" href="/assets/css/styles.css">
+  <script src="/assets/js/data.js" defer></script>
+  <script src="/assets/js/colombia-map.js" defer></script>
+  <script src="/assets/js/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Ir al contenido</a>
+
+  <header class="site-header">
+    <a class="institution" href="#inicio">
+      <img class="institution-logo" src="/assets/img/logo-herbario-surco.png" alt="Universidad Surcolombiana - Herbario SURCO" width="2000" height="615">
+    </a>
+  </header>
+
+  <div class="mainbar">
+    <button class="menu-toggle" type="button" aria-expanded="false" aria-controls="primary-navigation">
+      <span>Menú</span>
+      <span class="menu-toggle-icon" aria-hidden="true"><i></i><i></i><i></i></span>
+    </button>
+    <nav class="primary-navigation" id="primary-navigation" aria-label="Navegación principal">
+      <a class="is-active" href="#inicio">Inicio</a>
+      <a href="#especimenes">Especímenes</a>
+      <a href="#acerca">Acerca</a>
+      <a href="#cifras">Cifras</a>
+      <a href="#servicios">Servicios</a>
+      <a href="#publicaciones">Publicaciones</a>
+      <a href="#contacto">Contacto</a>
+    </nav>
+  </div>
+
+  <main id="contenido">
+    <section class="hero view" data-view="inicio" id="inicio" aria-labelledby="hero-title">
+      <div class="hero-logo" aria-hidden="true">
+        <svg viewBox="0 0 240 320" fill="none">
+          <path class="wreath" d="M120 250C60 238 36 180 44 90c34 22 58 62 76 160Z"/>
+          <path class="wreath" d="M120 250c60-12 84-70 76-160-34 22-58 62-76 160Z"/>
+          <path class="wreath-line" d="M120 250C92 190 70 140 52 96m68 154c28-60 50-110 68-154"/>
+          <path class="wreath-line" d="M120 250l-26 24m26-24 26 24"/>
+          <text x="120" y="188" text-anchor="middle" class="wreath-letter">S</text>
+        </svg>
+        <strong>HERBARIO</strong>
+        <span>SURCO</span>
+      </div>
+
+      <div class="hero-content">
+        <h1 id="hero-title" class="sr-only">Herbario SURCO</h1>
+        <p>
+          El Herbario SURCO es una unidad de la Universidad Surcolombiana que
+          realiza actividades de investigación, docencia y extensión
+          relacionadas con la flora del Huila y de Colombia. El herbario ofrece
+          acceso a los datos de colecta de sus especímenes.
+        </p>
+        <form class="search" id="catalog-search" role="search">
+          <label class="sr-only" for="catalog-query">Búsqueda por nombre científico</label>
+          <input id="catalog-query" name="q" type="search" placeholder="Búsqueda por nombre científico..." autocomplete="off">
+          <button type="submit" aria-label="Buscar">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="2.2"/><path d="m15.5 15.5 5 5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+          </button>
+        </form>
+        <a class="advanced" href="#busqueda-avanzada">Búsqueda avanzada</a>
+      </div>
+    </section>
+
+    <section class="results view" data-view="especimenes" id="especimenes" aria-labelledby="results-title">
+      <h2 class="page-title" id="results-title">Resultados de búsqueda</h2>
+      <div class="results-meta">
+        <p id="query-description"></p>
+        <p id="search-feedback" role="status" aria-live="polite"></p>
+      </div>
+      <div class="results-actions">
+        <button class="btn-download" id="download-csv" type="button">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l5 5v13H6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m9.500 13 5 6m0-6-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          Descargar XLSX
+        </button>
+      </div>
+      <dialog class="download-dialog" id="download-dialog" aria-labelledby="dialog-title">
+        <h3 id="dialog-title">Descargar XLSX</h3>
+        <button class="dialog-option" id="dialog-all" type="button">Descargar todos los resultados (<span class="dialog-all-count"></span>)</button>
+        <p class="dialog-or">o descargar un ejemplar específico</p>
+        <label class="dialog-select">Ejemplar
+          <select id="download-choice"></select>
+        </label>
+        <div class="dialog-buttons">
+          <button class="btn-clear" id="dialog-cancel" type="button">Cancelar</button>
+          <button class="btn-search" id="dialog-one" type="button">Descargar este ejemplar</button>
+        </div>
+      </dialog>
+      <div class="specimen-grid" id="specimen-results"></div>
+    </section>
+
+    <section class="results view" data-view="ejemplar" id="ejemplar" aria-labelledby="detail-title">
+      <h2 class="page-title" id="detail-title"></h2>
+      <div class="detail" id="detail-body"></div>
+      <p><a class="back-link" href="#especimenes">← Volver a los resultados</a></p>
+    </section>
+
+    <section class="results advanced-view view" data-view="busqueda-avanzada" id="busqueda-avanzada" aria-labelledby="advanced-title">
+      <h2 id="advanced-title">Búsqueda avanzada</h2>
+      <form class="adv-form" id="advanced-form">
+        <div class="adv-body">
+          <div class="adv-grid">
+            <label class="adv-field adv-third">Número de catálogo<input name="catalogNumber" type="text" placeholder="Ej: 000014 o 14" autocomplete="off"></label>
+            <span class="adv-spacer"></span><span class="adv-spacer"></span>
+            <label class="adv-field adv-third">Familia<input name="family" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-third">Género<input name="genus" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-third">Especie<input name="species" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-third">País<input name="country" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-third">Departamento<input name="department" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-third">Municipio<input name="municipality" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-full">Localidad<input name="locality" type="text" placeholder="Ej: vereda, parque, río..." autocomplete="off"></label>
+            <label class="adv-field adv-half">Altura mínima (m)<input name="minAltitude" type="number" min="0" placeholder="Ej: 500"></label>
+            <label class="adv-field adv-half">Altura máxima (m)<input name="maxAltitude" type="number" min="0" placeholder="Ej: 3500"></label>
+            <label class="adv-field adv-half">Apellido del colector principal<input name="collectors" type="text" placeholder="Ej: Mahecha" autocomplete="off"></label>
+            <label class="adv-field adv-half">Número de colector<input name="collectionNumber" type="text" autocomplete="off"></label>
+            <label class="adv-field adv-half">Hábito
+              <select name="habit"><option value="">Seleccione...</option></select>
+            </label>
+            <label class="adv-field adv-half">Nombre común<input name="commonName" type="text" autocomplete="off"></label>
+          </div>
+        </div>
+        <div class="adv-footer">
+          <button class="btn-clear" type="reset">Limpiar</button>
+          <button class="btn-search" type="submit">Buscar</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel view" data-view="cifras" id="cifras" aria-labelledby="stats-title">
+      <h2 class="page-title" id="stats-title">Cifras</h2>
+      <p>Las siguientes estadísticas reflejan el estado actual de las actividades y resultados del herbario.</p>
+      <div class="stat-card stat-wide"><h3>Registros en la base de datos</h3><strong id="st-total"></strong></div>
+      <div class="stat-grid">
+        <div class="stat-card"><h3>Ejemplares tipo</h3><strong id="st-types"></strong></div>
+        <div class="stat-card"><h3>Nivel determinación (%)</h3><strong id="st-determined"></strong></div>
+        <div class="stat-card"><h3>Georreferenciación (%)</h3><strong id="st-geo"></strong></div>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><h3>Familias</h3><strong id="st-families"></strong></div>
+        <div class="stat-card"><h3>Géneros</h3><strong id="st-genera"></strong></div>
+        <div class="stat-card"><h3>Especies</h3><strong id="st-species"></strong></div>
+      </div>
+      <div class="stat-grid stat-lists">
+        <div><h3 id="st-fam-title"></h3><ul class="rank-list" id="st-fam-list"></ul></div>
+        <div><h3 id="st-gen-title"></h3><ul class="rank-list italic" id="st-gen-list"></ul></div>
+        <div><h3 id="st-dep-title"></h3><ul class="rank-list" id="st-dep-list"></ul></div>
+      </div>
+      <p id="st-dep-text"></p>
+      <p><strong>Mapa de densidad de colectas por departamento (Colombia)</strong></p>
+      <div class="map-wrap">
+        <svg id="co-map" role="img" aria-label="Mapa de Colombia por número de ejemplares por departamento"></svg>
+        <ul class="map-legend" id="map-legend"></ul>
+      </div>
+    </section>
+
+    <section class="panel about view" data-view="acerca" id="acerca" aria-labelledby="about-title">
+      <h2 class="page-title" id="about-title">Acerca de SURCO</h2>
+      <p data-setting="aboutIntro">El Herbario SURCO es una unidad de la Universidad Surcolombiana que realiza actividades de investigación, docencia y extensión relacionadas con la flora del Huila y de Colombia. El herbario ofrece acceso a los datos de colecta de sus especímenes.</p>
+
+      <h3>Misión</h3>
+      <p class="pending" data-setting="mission">Texto de la misión del herbario pendiente de definir.</p>
+
+      <h3>Fundador</h3>
+      <div class="about-founder">
+        <div class="about-photo" role="img" aria-label="Fotografía pendiente" data-setting-photo="founderPhoto">Foto pendiente</div>
+        <p class="pending" data-setting="founderText">Información sobre el fundador del herbario pendiente de definir.</p>
+      </div>
+
+      <h3>Integrantes del herbario</h3>
+      <div class="member-grid" id="member-grid">
+        <article class="member-card"><div class="member-photo" role="img" aria-label="Fotografía pendiente">Foto pendiente</div><h4>Director(a)</h4><p class="member-name">Nombre pendiente</p><p><strong>Función:</strong> dirige el herbario, autoriza los servicios y representa a la colección ante la universidad.</p></article>
+        <article class="member-card"><div class="member-photo" role="img" aria-label="Fotografía pendiente">Foto pendiente</div><h4>Curador(a)</h4><p class="member-name">Nombre pendiente</p><p><strong>Función:</strong> cuida la colección, verifica la identificación taxonómica y revisa los registros de los ejemplares.</p></article>
+        <article class="member-card"><div class="member-photo" role="img" aria-label="Fotografía pendiente">Foto pendiente</div><h4>Auxiliar de colección</h4><p class="member-name">Nombre pendiente</p><p><strong>Función:</strong> prepara, seca, etiqueta y organiza el material botánico, y registra los datos de colecta.</p></article>
+        <article class="member-card"><div class="member-photo" role="img" aria-label="Fotografía pendiente">Foto pendiente</div><h4>Investigadores y estudiantes</h4><p class="member-name">Nombres pendientes</p><p><strong>Función:</strong> realizan colectas y proyectos de investigación, y apoyan las actividades del herbario.</p></article>
+      </div>
+      <p class="pending">Los cargos, nombres y funciones son una propuesta y están pendientes de confirmar por el herbario.</p>
+
+      <h3 class="with-rule">Historia</h3>
+      <p class="pending" data-setting="history">Reseña histórica del herbario pendiente de definir.</p>
+
+      <h3>Términos de uso</h3>
+      <p class="pending" data-setting="terms">Términos de uso de la información del herbario virtual pendientes de definir.</p>
+    </section>
+
+    <section class="panel view" data-view="servicios" id="servicios" aria-labelledby="services-title">
+      <h2 class="page-title" id="services-title">Servicios</h2>
+      <p>El Herbario SURCO ofrece los siguientes servicios a la comunidad universitaria y al público en general. Para acceder a ellos se requiere contactar al herbario y obtener autorización de la dirección. Las condiciones y tarifas se encuentran pendientes de definir.</p>
+      <p>Las solicitudes deben enviarse al correo electrónico <a href="mailto:herbario@usco.edu.co">herbario@usco.edu.co</a>, indicando los servicios requeridos.</p>
+      <div class="service-grid">
+        <article class="service-card"><h3>Biblioteca</h3><p>Consulta de material bibliográfico del herbario. Condiciones pendientes de definir.</p><a class="service-btn" href="#biblioteca">Consulta el catálogo</a></article>
+        <article class="service-card"><h3>Consulta de la colección</h3><p>Los ejemplares de la colección pueden consultarse siguiendo las normas establecidas por el herbario.</p></article>
+        <article class="service-card"><h3>Identificación de especies</h3><p>El herbario ofrece el servicio de identificación de especies botánicas.</p></article>
+        <article class="service-card"><h3>Etiquetado</h3><p>Elaboración de etiquetas para material botánico. Formato pendiente de definir.</p></article>
+        <article class="service-card"><h3>Secado de material</h3><p>Servicio de secado y cuarentena de material botánico.</p></article>
+        <article class="service-card"><h3>Publicaciones</h3><p>En el marco de sus actividades académicas, el herbario genera publicaciones de interés para la comunidad científica y estudiantil.</p><a class="service-btn" href="#publicaciones">Ver publicaciones</a></article>
+      </div>
+      <h3 class="tariff-title">Tarifas</h3>
+      <div class="table-scroll">
+        <table class="tariff-table">
+          <thead><tr><th></th><th>Usuario tipo 2</th><th>Usuario tipo 3</th><th>Usuario tipo 4</th><th>Usuario tipo 5</th></tr></thead>
+          <tbody>
+            <tr><th>Consulta de la colección (por día)</th><td>Por definir</td><td>Por definir</td><td>Por definir</td><td>Por definir</td></tr>
+            <tr><th>Identificación de especies (por especie)</th><td>Por definir</td><td>Por definir</td><td>Por definir</td><td>Por definir</td></tr>
+            <tr><th>Etiquetado de material botánico (por etiqueta)</th><td>Por definir</td><td>Por definir</td><td>Por definir</td><td>Por definir</td></tr>
+            <tr><th>Secado de material botánico (por espécimen)</th><td>Por definir</td><td>Por definir</td><td>Por definir</td><td>Por definir</td></tr>
+            <tr><th>Secado de material botánico previo a identificación por parte del herbario (por espécimen)</th><td>Por definir</td><td>Por definir</td><td>Por definir</td><td>Por definir</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="panel view library" data-view="biblioteca" id="biblioteca" aria-labelledby="library-title">
+      <h2 class="page-title" id="library-title">Biblioteca</h2>
+      <form class="lib-search" id="lib-form" role="search">
+        <select id="lib-field" aria-label="Campo de búsqueda">
+          <option value="all">Palabra clave</option>
+          <option value="title">Título</option>
+          <option value="author">Autor</option>
+          <option value="subject">Materia</option>
+        </select>
+        <input type="search" id="lib-query" placeholder="Buscar catálogo de la biblioteca" aria-label="Buscar catálogo de la biblioteca">
+        <button type="submit" class="lib-go" aria-label="Buscar">&#128269;</button>
+      </form>
+      <div class="lib-layout">
+        <aside class="lib-filters" aria-label="Depurar resultados">
+          <h3 id="lib-filter-title">Depurar resultados</h3>
+          <div class="lib-active" id="lib-active" hidden>
+            <p>Filtros activos <button type="button" class="link-btn" id="lib-clear">Borrar todo</button></p>
+            <ul id="lib-active-list"></ul>
+          </div>
+          <details class="lib-group"><summary>Estado del artículo</summary><ul class="lib-opts" id="lib-opt-status"></ul></details>
+          <details class="lib-group"><summary>Formato</summary><ul class="lib-opts" id="lib-opt-format"></ul></details>
+          <details class="lib-group" open><summary>Ubicación</summary><ul class="lib-opts" id="lib-opt-location"></ul></details>
+          <details class="lib-group"><summary>Editor</summary><ul class="lib-opts" id="lib-opt-publisher"></ul></details>
+          <details class="lib-group"><summary>Colaborador</summary><ul class="lib-opts" id="lib-opt-contributor"></ul></details>
+          <details class="lib-group"><summary>Idioma</summary><ul class="lib-opts" id="lib-opt-language"></ul></details>
+          <details class="lib-group"><summary>Materia</summary><ul class="lib-opts" id="lib-opt-subject"></ul></details>
+          <details class="lib-group"><summary>Año de publicación</summary><ul class="lib-opts" id="lib-opt-year"></ul></details>
+        </aside>
+        <div class="lib-results">
+          <p class="lib-count" id="lib-count"></p>
+          <ol class="lib-list" id="lib-list"></ol>
+        </div>
+      </div>
+    </section>
+    <section class="panel view" data-view="publicaciones" id="publicaciones" aria-labelledby="publications-title">
+      <h2 class="page-title" id="publications-title">Publicaciones</h2>
+      <p>El Herbario SURCO promueve la producción de publicaciones científicas que difundan los resultados de sus investigaciones botánicas. Las publicaciones fortalecen la formación académica y el conocimiento sobre la flora del Huila y de Colombia.<br>*En caso de requerir alguna de las publicaciones comunicarse al correo <a href="mailto:herbario@usco.edu.co">herbario@usco.edu.co</a></p>
+      <div class="table-scroll">
+        <table class="pub-table">
+          <thead><tr><th>Nombre</th><th>Enlace</th><th>Descripción</th></tr></thead>
+          <tbody id="pub-body">
+            <tr class="pub-empty"><td colspan="3">Aún no hay publicaciones registradas. Pendiente de definir.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel view" data-view="contacto" id="contacto" aria-labelledby="contact-title">
+      <h2 class="page-title" id="contact-title">Contacto</h2>
+      <p>El herbario está ubicado en las instalaciones de la Universidad Surcolombiana, en Neiva, Huila.</p>
+      <div class="contact-layout">
+        <ul class="contact-list">
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15 15 0 0 0 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.100.4 2.300.6 3.600.6.600 0 1 .4 1 1V20c0 .6-.4 1-1 1A17 17 0 0 1 3 4c0-.6.4-1 1-1h3.500c.600 0 1 .4 1 1 0 1.300.2 2.500.6 3.600.1.300 0 .7-.2 1z"/></svg><span class="pending" data-setting="phone">Teléfono pendiente de definir</span></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a7 7 0 0 0-7 7c0 5.200 7 13 7 13s7-7.800 7-13a7 7 0 0 0-7-7zm0 9.500A2.500 2.500 0 1 1 12 6.500a2.500 2.500 0 0 1 0 5z"/></svg><span data-setting="address">Universidad Surcolombiana - Sede Central, Cra. 1 #26a1, Neiva, Huila, Colombia</span></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 5h20v2l-10 6L2 7zm0 4.500 10 6 10-6V19H2z"/></svg><a href="mailto:herbario@usco.edu.co">herbario@usco.edu.co</a></li>
+          <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2h10a5 5 0 0 1 5 5v10a5 5 0 0 1-5 5H7a5 5 0 0 1-5-5V7a5 5 0 0 1 5-5zm5 5.500A4.500 4.500 0 1 0 12 16.500 4.500 4.500 0 0 0 12 7.500zm0 2A2.500 2.500 0 1 1 12 14.500 2.500 2.500 0 0 1 12 9.500zM17.500 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z"/></svg><span class="pending" data-setting="instagram">Instagram pendiente de definir</span></li>
+        </ul>
+        <div class="contact-map-wrap">
+          <iframe class="contact-map" title="Mapa de Google Maps: Universidad Surcolombiana, Neiva" loading="lazy" referrerpolicy="no-referrer-when-downgrade"           src="https://maps.google.com/maps?q=Universidad%20Surcolombiana%20sede%20Neiva&amp;z=16&amp;output=embed"></iframe>
+                    <a class="service-btn map-link" href="https://www.google.com/maps/search/?api=1&amp;query=Universidad%20Surcolombiana%20sede%20Neiva" target="_blank" rel="noopener noreferrer">Abrir en Google Maps</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+</body>
+</html>
+
+

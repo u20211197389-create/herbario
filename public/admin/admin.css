@@ -1,0 +1,57 @@
+:root { --maroon:#8b1a1a; --gold:#f5b800; --line:#ddd; --muted:#666; --bg:#f5f4f1; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: system-ui, "Segoe UI", Arial, sans-serif; background:var(--bg); color:#222; }
+[hidden] { display:none !important; }
+a { color:var(--maroon); }
+.login { min-height:100vh; display:grid; place-items:center; padding:16px; }
+.login-card { background:#fff; border:1px solid var(--line); border-top:4px solid var(--gold); padding:28px; width:min(380px,100%); display:grid; gap:12px; }
+.login-card h1 { margin:0; color:var(--maroon); font-size:1.5rem; }
+.login-card p { margin:0; color:var(--muted); }
+label { display:grid; gap:4px; font-size:.85rem; font-weight:600; }
+input, select, textarea { font:inherit; padding:8px 10px; border:1px solid #bbb; border-radius:3px; width:100%; background:#fff; }
+textarea { min-height:90px; resize:vertical; }
+.btn { background:var(--maroon); color:#fff; border:0; padding:9px 16px; border-radius:3px; cursor:pointer; font:inherit; font-weight:600; }
+.btn:hover { background:#6e1414; }
+.btn.ghost { background:transparent; color:var(--maroon); border:1px solid var(--maroon); }
+.btn.ghost:hover { background:#f6e9e9; }
+.btn.danger { background:#b00020; }
+.btn.small { padding:4px 10px; font-size:.8rem; }
+.error { color:#b00020; min-height:1.2em; font-size:.9rem; }
+.back { font-size:.85rem; }
+.bar { display:flex; gap:14px; align-items:center; background:var(--maroon); color:#fff; padding:10px 18px; flex-wrap:wrap; }
+.bar a { color:#fff; } .bar .btn.ghost { color:#fff; border-color:#fff; }
+.spacer { flex:1; }
+.tabs { display:flex; flex-wrap:wrap; gap:2px; background:#fff; border-bottom:2px solid var(--gold); padding:0 12px; }
+.tabs button { border:0; background:none; padding:12px 14px; cursor:pointer; font:inherit; color:#333; border-bottom:3px solid transparent; margin-bottom:-2px; }
+.tabs button.active { color:var(--maroon); font-weight:700; border-bottom-color:var(--maroon); }
+.panel { padding:18px; max-width:1300px; margin:0 auto; }
+.panel h2 { margin:0 0 6px; color:var(--maroon); }
+.hint { color:var(--muted); font-size:.9rem; margin:0 0 14px; }
+.toolbar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+.toolbar input[type=search] { max-width:280px; }
+.table-wrap { overflow:auto; background:#fff; border:1px solid var(--line); }
+table { border-collapse:collapse; width:100%; font-size:.88rem; }
+th, td { padding:7px 10px; border-bottom:1px solid #eee; text-align:left; vertical-align:top; }
+th { background:#faf7ef; position:sticky; top:0; white-space:nowrap; }
+td.actions { white-space:nowrap; }
+td.actions .btn + .btn { margin-left:4px; }
+.empty { padding:24px; color:var(--muted); text-align:center; }
+dialog { border:1px solid #999; border-top:4px solid var(--gold); padding:0; width:min(760px, 96vw); max-height:92vh; }
+dialog::backdrop { background:rgba(0,0,0,.45); }
+#editor-form { padding:18px; display:grid; gap:12px; }
+#editor-form h3 { margin:0; color:var(--maroon); }
+.grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:10px; }
+.grid .wide { grid-column:1 / -1; }
+.row { display:flex; gap:8px; justify-content:flex-end; flex-wrap:wrap; }
+.check { display:flex; align-items:center; gap:8px; font-weight:600; }
+.check input { width:auto; }
+.upload { display:flex; gap:8px; align-items:center; }
+.upload img { max-height:48px; max-width:80px; border:1px solid var(--line); }
+.card { background:#fff; border:1px solid var(--line); padding:16px; margin-bottom:16px; display:grid; gap:12px; }
+.card h3 { margin:0; color:var(--maroon); }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:12px; }
+.stat { background:#fff; border:1px solid var(--line); border-top:3px solid var(--gold); padding:12px; }
+.stat b { display:block; font-size:1.6rem; color:var(--maroon); }
+.toast { position:fixed; bottom:18px; left:50%; transform:translateX(-50%); background:#222; color:#fff; padding:10px 18px; border-radius:4px; z-index:50; max-width:90vw; }
+.toast.err { background:#b00020; }
+.log { max-height:160px; overflow:auto; font-size:.82rem; background:#fafafa; border:1px solid var(--line); padding:8px; white-space:pre-wrap; }
