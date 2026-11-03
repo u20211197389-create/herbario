@@ -7,7 +7,12 @@
     "dev": "node server/index.js",
     "start": "node server/index.js",
     "publicar": "node scripts/build-static.js",
-    "crear-admin": "node server/create-admin.js"
+    "crear-admin": "node server/create-admin.js",
+    "d1:export": "node scripts/export-d1.mjs",
+    "worker:dev": "wrangler dev --local",
+    "worker:deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.2"
   }
 }
-

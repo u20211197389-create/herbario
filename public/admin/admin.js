@@ -111,6 +111,24 @@ const download = (name, content) => {
 const editor = $('editor');
 const editorForm = $('editor-form');
 
+const MAX_IMAGE_BYTES = 1_100_000;
+// Las imágenes grandes se reducen en el navegador para respetar el límite de almacenamiento del servidor.
+const shrinkImage = async (file) => {
+  if (file.size <= MAX_IMAGE_BYTES) return file.arrayBuffer();
+  const bitmap = await createImageBitmap(file);
+  let scale = Math.min(1, 2000 / Math.max(bitmap.width, bitmap.height));
+  for (let quality = 0.85; quality > 0.3; quality -= 0.1) {
+    const canvas = el('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    canvas.getContext('2d').drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/jpeg', quality));
+    if (blob && blob.size <= MAX_IMAGE_BYTES) return blob.arrayBuffer();
+    scale *= 0.85;
+  }
+  throw new Error('No se pudo reducir la imagen lo suficiente.');
+};
+
 const imageField = (field, value) => {
   const input = el('input', { name: field.name, value: value || '', maxLength: 500, placeholder: '/uploads/… o https://…' });
   const preview = el('img', { class: 'image-preview', alt: 'Vista previa de la imagen', hidden: !value, src: value || '' });
@@ -120,7 +138,7 @@ const imageField = (field, value) => {
     const f = file.files[0];
     if (!f) return;
     try {
-      const { url } = await api('POST', '/api/admin/upload', undefined, await f.arrayBuffer());
+      const { url } = await api('POST', '/api/admin/upload', undefined, await shrinkImage(f));
       input.value = url; preview.src = url; preview.hidden = false;
     } catch (e) { fail(e); }
   } });

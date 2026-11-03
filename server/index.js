@@ -4,6 +4,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { db, ROOT, UPLOAD_DIR, ENTITIES, insert, update, remove, list, clean, getSettings, saveSettings, publicData } from './db.js';
 import { mailConfigured, sendMail } from './mailer.js';
+import { buildDecisionMail } from './mailtext.js';
 import { hashPassword, verifyPassword, newToken, hashToken, passwordProblem } from './security.js';
 
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -94,21 +95,8 @@ const parseId = (entity, raw) => {
   return /^\d+$/.test(id) ? Number(id) : null;
 };
 
-const buildDecisionMail = ({ kind, email, catalogNumber }, status, token, origin) => {
-  const what = kind === 'descarga' ? 'descarga de datos' : `imagen del ejemplar ${catalogNumber}`;
-  const sign = '\n\nHerbario SURCO\nUniversidad Surcolombiana\nherbario@usco.edu.co';
-  let text;
-  if (status === 'aprobada') {
-    text = kind === 'imagen'
-      ? `Hola,\n\nSu solicitud de ${what} fue aprobada. Puede verla con este enlace personal, válido por 7 días:\n\n${origin}/ejemplar/${encodeURIComponent(catalogNumber)}/?acceso=${token}\n\nPor favor no lo comparta.${sign}`
-      : `Hola,\n\nSu solicitud de ${what} (${catalogNumber}) fue aprobada. El herbario le enviará los datos solicitados en un mensaje aparte.${sign}`;
-  } else {
-    text = `Hola,\n\nLamentamos informarle que su solicitud de ${what} no fue aprobada. Si desea más información, responda a este correo.${sign}`;
-  }
-  return { to: email, subject: `Herbario SURCO: respuesta a su solicitud de ${kind === 'descarga' ? 'descarga' : 'imagen'}`, text };
-};
-
 const imageRequestAttempts = new Map();
+const IMAGE_ACCESS_MS = 7 * 24 * 60 * 60 * 1000;
 
 // En hosting sin terminal, el primer administrador se crea con ADMIN_USER y ADMIN_PASSWORD (solo si no hay usuarios).
 if (!db.prepare('SELECT 1 FROM users LIMIT 1').get() && process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
@@ -119,7 +107,6 @@ if (!db.prepare('SELECT 1 FROM users LIMIT 1').get() && process.env.ADMIN_USER &
     console.log(`Administrador "${process.env.ADMIN_USER}" creado.`);
   }
 }
-const IMAGE_ACCESS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const handleApi = async (req, res, url) => {
   const method = req.method;

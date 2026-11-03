@@ -1,0 +1,15 @@
+name = "herbario-surco"
+main = "worker/index.js"
+compatibility_date = "2025-09-01"
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+not_found_handling = "single-page-application"
+# Estas rutas pasan primero por el Worker; el resto se sirve como archivos estáticos.
+run_worker_first = ["/api/*", "/uploads/*", "/assets/js/data.js"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "herbario"
+database_id = "00000000-0000-0000-0000-000000000000"

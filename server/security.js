@@ -18,9 +18,4 @@ export const verifyPassword = (password, stored) => {
 export const newToken = () => crypto.randomBytes(32).toString('hex');
 export const hashToken = (token) => crypto.createHash('sha256').update(token).digest('hex');
 
-export const passwordProblem = (password) => {
-  if (typeof password !== 'string' || password.length < 10) return 'La contraseña debe tener al menos 10 caracteres.';
-  if (password.length > 200) return 'La contraseña es demasiado larga.';
-  if (!/[A-Za-z]/.test(password) || !/\d/.test(password)) return 'La contraseña debe incluir letras y números.';
-  return null;
-};
+export { passwordProblem } from './entities.js';
