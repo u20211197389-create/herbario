@@ -537,6 +537,12 @@ const showView = () => {
     detailBook = libraryItems.find((book) => String(book.id) === hash.slice('biblioteca/'.length));
     if (!detailBook) current = 'biblioteca';
   }
+  let detailPub = null;
+  if (hash.startsWith('publicaciones/')) {
+    current = 'publicaciones-detalle';
+    detailPub = publications.find((pub) => String(pub.id) === hash.slice('publicaciones/'.length));
+    if (!detailPub) current = 'publicaciones';
+  }
   if (hash.startsWith('ejemplar/')) {
     current = 'ejemplar';
     detailSpecimen = herbariumSpecimens.find((specimen) => specimen.catalogNumber === hash.slice('ejemplar/'.length));
@@ -546,8 +552,9 @@ const showView = () => {
 
   if (detailSpecimen) renderDetail(detailSpecimen);
   if (detailBook) renderBookDetail(detailBook);
+  if (detailPub) renderPubDetail(detailPub);
   views.forEach((view) => { view.hidden = view.dataset.view !== current; });
-  const activeMenu = current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' ? 'servicios' : current;
+  const activeMenu = current === 'publicaciones-detalle' ? 'publicaciones' : current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' ? 'servicios' : current;
   menuLinks.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === toPath(activeMenu)));
   window.scrollTo(0, 0);
 };
@@ -989,6 +996,46 @@ const renderLibrary = () => {
 libForm.addEventListener('submit', (event) => { event.preventDefault(); renderLibrary(); });
 document.getElementById('lib-clear').addEventListener('click', () => { libSelected.clear(); renderLibrary(); });
 
+const pubPath = (pub) => toPath(`publicaciones/${pub.id}`);
+
+// Acepta http(s) o un dominio escrito sin esquema (www.sitio.com); lo demás no es un enlace usable.
+const pubUrl = (raw) => {
+  const value = String(raw || '').trim();
+  if (/^https?:\/\/\S+$/i.test(value)) return value;
+  if (/^[\w-]+(\.[\w-]+)+(\/\S*)?$/.test(value)) return `https://${value}`;
+  return '';
+};
+
+const renderPubDetail = (pub) => {
+  document.getElementById('pubd-title').textContent = pub.name;
+  const desc = document.getElementById('pubd-desc');
+  desc.replaceChildren();
+  if (pub.description) { const p = document.createElement('p'); p.textContent = pub.description; desc.append(p); }
+  const link = document.getElementById('pubd-link');
+  link.replaceChildren();
+  const href = pubUrl(pub.url);
+  if (href) {
+    const a = document.createElement('a');
+    a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; a.className = 'service-btn';
+    a.textContent = 'Abrir publicación';
+    link.append(a);
+  }
+  const cover = document.getElementById('pubd-cover');
+  cover.replaceChildren();
+  if (pub.image) {
+    const img = document.createElement('img');
+    img.src = pub.image; img.alt = `Portada de ${pub.name}`;
+    cover.append(img);
+  }
+  const at = publications.findIndex((p) => p.id === pub.id);
+  document.getElementById('pubd-pos').textContent = `${at + 1} de ${publications.length}`;
+  const prev = document.getElementById('pubd-prev');
+  const next = document.getElementById('pubd-next');
+  prev.disabled = at <= 0; next.disabled = at >= publications.length - 1;
+  prev.onclick = () => navigate(pubPath(publications[at - 1]));
+  next.onclick = () => navigate(pubPath(publications[at + 1]));
+};
+
 const renderPublications = () => {
   if (!publications.length) return;
   const body = document.getElementById('pub-body');
@@ -996,15 +1043,21 @@ const renderPublications = () => {
   publications.forEach((pub) => {
     const row = document.createElement('tr');
     const name = document.createElement('th');
-    name.textContent = pub.name;
+    const detailLink = document.createElement('a');
+    detailLink.href = pubPath(pub);
+    detailLink.textContent = pub.name;
+    name.append(detailLink);
     const linkCell = document.createElement('td');
-    if (pub.url) {
+    const external = pubUrl(pub.url);
+    if (external) {
       const a = document.createElement('a');
-      a.href = pub.url;
+      a.href = external;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.textContent = pub.name;
+      a.textContent = 'Abrir enlace';
       linkCell.append(a);
+    } else {
+      linkCell.textContent = '—';
     }
     const desc = document.createElement('td');
     const strong = document.createElement('strong');

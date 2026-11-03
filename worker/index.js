@@ -150,7 +150,7 @@ const publicData = async (env) => {
   return {
     specimens: specs.map(({ image, ...s }) => ({ ...s, hasImage: Boolean(image), isType: Boolean(s.isType) })),
     libraryItems: lib.map(({ contributors, subjects, ...r }) => ({ ...r, contributors: split(contributors), subjects: split(subjects) })),
-    publications: publications.map(({ id, ...r }) => r),
+    publications: publications,
     siteMembers: members.map(({ id, position, ...r }) => r),
     siteSettings,
   };

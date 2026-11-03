@@ -124,7 +124,7 @@ export const publicData = () => {
     contributors: contributors ? contributors.split(',').map((x) => x.trim()).filter(Boolean) : [],
     subjects: subjects ? subjects.split(',').map((x) => x.trim()).filter(Boolean) : [],
   }));
-  const publications = list('publications').map(({ id, ...r }) => r);
+  const publications = list('publications');
   const siteMembers = list('members').map(({ id, position, ...r }) => r);
   return { specimens, libraryItems, publications, siteMembers, siteSettings: getSettings() };
 };
