@@ -161,3 +161,5 @@ dialog::backdrop { background:rgba(20,20,30,.5); backdrop-filter:blur(2px); }
 .panel h2 { font-size: 1.9rem; color: var(--maroon); letter-spacing: .005em; }
 .panel h2::after { width: 56px; height: 2px; border-radius: 2px; }
 .bar strong { font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: .01em; }
+
+.login-card h1, .panel h2, .panel h3, #editor h2, #editor h3 { color: #111; font-weight: 400; }

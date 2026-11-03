@@ -687,3 +687,7 @@ main { padding-bottom: 40px; }
 .page-title::after { width: 64px; height: 2px; border-radius: 2px; background: var(--gold); }
 .panel h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; font-size: 21px; }
 .libd-head .page-title { font-size: clamp(26px, 3.4vw, 36px) !important; }
+
+/* Títulos en negro y sin negrita */
+.page-title, .libd-head .page-title { color: #111 !important; font-weight: 400 !important; }
+.panel h3 { color: #111; font-weight: 400; }
