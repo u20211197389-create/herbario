@@ -297,6 +297,19 @@ const specimenPicture = (specimen, className, size) => {
   return box;
 };
 
+const sortSelect = document.querySelector('#sort-results');
+const sortedResults = () => {
+  const mode = sortSelect?.value;
+  if (!mode) return currentResults;
+  const dir = mode === 'newest' ? -1 : 1;
+  // Los ejemplares sin fecha quedan siempre al final.
+  return [...currentResults].sort((a, b) => {
+    if (!a.collectedAt || !b.collectedAt) return (a.collectedAt ? 0 : 1) - (b.collectedAt ? 0 : 1);
+    return dir * String(a.collectedAt).localeCompare(String(b.collectedAt));
+  });
+};
+sortSelect?.addEventListener('change', () => renderResults());
+
 const renderResults = () => {
   specimenResults.replaceChildren();
   queryDescription.replaceChildren(createElement('strong', '', 'Consulta por '), document.createTextNode(currentDescription));
@@ -310,7 +323,7 @@ const renderResults = () => {
   }
 
   const fragment = document.createDocumentFragment();
-  currentResults.forEach((specimen) => {
+  sortedResults().forEach((specimen) => {
     const card = createElement('a', 'specimen-card');
     card.href = `${BASE}/ejemplar/${encodeURIComponent(specimen.catalogNumber)}/`;
     card.append(

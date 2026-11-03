@@ -71,6 +71,13 @@
         <p id="search-feedback" role="status" aria-live="polite"></p>
       </div>
       <div class="results-actions">
+        <label class="sort-field">Ordenar por
+          <select id="sort-results">
+            <option value="">Número de catálogo</option>
+            <option value="newest">Fecha de colecta: más recientes primero</option>
+            <option value="oldest">Fecha de colecta: más antiguos primero</option>
+          </select>
+        </label>
         <button class="btn-download" id="download-csv" type="button">
           <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h8l5 5v13H6Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="m9.500 13 5 6m0-6-5 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
           Descargar XLSX
