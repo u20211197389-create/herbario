@@ -65,7 +65,19 @@ Los datos se guardan en SQLite. El esquema PostgreSQL y el script de Director de
 - La plantilla no trae el identificador de institución que exige la tabla SQL, y las coordenadas decimales están fuera de rango; no se inventaron esos datos.
 - No hay datos de altura, nombre común ni ejemplares tipo; se pueden completar desde el panel.
 - Los textos institucionales (misión, historia, fundador, tarifas) siguen pendientes hasta que se escriban en el panel (las tarifas aún están fijas en `index.html`).
-## Publicar el servidor en línea (Render)
+## Servidor en línea gratis (Cloudflare Workers + D1)
+
+Sitio completo y panel de administración, siempre encendido y sin costo:
+https://herbario-surco.herbariosurco.workers.dev (panel en `/admin/`).
+
+- Código: `worker/` (API), `wrangler.toml`, `worker/schema.sql` y `worker/seed.sql` (generados con `npm run d1:export`).
+- Probar en local: crear `.dev.vars` con `ADMIN_USER` y `ADMIN_PASSWORD`, aplicar schema/seed con `npx wrangler d1 execute herbario --local --file=worker/schema.sql` y luego `npm run worker:dev`.
+- Publicar cambios: `npm run worker:deploy`.
+- Administrador inicial: secretos `ADMIN_USER` y `ADMIN_PASSWORD` (`npx wrangler secret put ...`). Cambie la contraseña desde el panel.
+- Correos automáticos: secretos opcionales `SMTP_HOST`, `SMTP_PORT` (587 o 465), `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` y `PUBLIC_URL`. Sin ellos se abre el correo del administrador (`mailto:`).
+- Las imágenes subidas se guardan en D1 (máx. ~1.2 MB; el panel las reduce solo).
+
+## Publicar el servidor en línea (Render, requiere tarjeta; sin usar)
 
 Necesario para que el panel de administración y los enlaces de los correos funcionen desde cualquier lugar. El repositorio incluye `render.yaml`.
 
