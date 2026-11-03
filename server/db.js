@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS image_requests (
   status TEXT NOT NULL DEFAULT 'pendiente', token TEXT, expiresAt INTEGER,
   createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, decidedAt TEXT);
 `);
+if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'displayName')) {
+  db.exec("ALTER TABLE users ADD COLUMN displayName TEXT NOT NULL DEFAULT ''; ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''; ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '';");
+}
 if (!db.prepare('PRAGMA table_info(image_requests)').all().some((c) => c.name === 'kind')) {
   db.exec("ALTER TABLE image_requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'imagen'");
 }

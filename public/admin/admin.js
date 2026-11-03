@@ -368,9 +368,20 @@ const openTab = (id) => {
 };
 
 const showLogin = () => { $('app-view').hidden = true; $('login-view').hidden = false; $('login-pass').value = ''; };
-const showApp = (username) => {
-  $('login-view').hidden = true; $('app-view').hidden = false; $('who').textContent = username;
-  const ini = (username || '?').charAt(0).toUpperCase(); $('avatar').textContent = ini; $('avatar2').textContent = ini;
+let me = {};
+const paintAvatar = (node, text) => {
+  node.replaceChildren(me.avatar ? el('img', { src: me.avatar, alt: '' }) : text);
+};
+const applyProfile = () => {
+  const shown = me.displayName || me.username || '?';
+  $('who').textContent = shown;
+  const ini = shown.charAt(0).toUpperCase();
+  paintAvatar($('avatar'), ini); paintAvatar($('avatar2'), ini);
+};
+const showApp = (profile) => {
+  me = profile;
+  $('login-view').hidden = true; $('app-view').hidden = false;
+  applyProfile();
   $('tabs').replaceChildren(...TABS.map(([id, label]) => el('button', { type: 'button', textContent: label, onclick: () => openTab(id) }, )));
   $('tabs').querySelectorAll('button').forEach((b, i) => { b.dataset.tab = TABS[i][0]; });
   openTab(sessionStorage.getItem('adminTab'));
@@ -381,9 +392,60 @@ $('login-form').addEventListener('submit', async (ev) => {
   $('login-error').textContent = '';
   try {
     await api('POST', '/api/login', { username: $('login-user').value, password: $('login-pass').value });
-    showApp((await api('GET', '/api/me')).username);
+    showApp(await api('GET', '/api/me'));
   } catch (e) { $('login-error').textContent = e.message; }
 });
+
+// La foto se recorta a un cuadrado de 160 px y se guarda dentro del perfil (unos 10 KB).
+const avatarFromFile = async (file) => {
+  const bmp = await createImageBitmap(file);
+  const side = Math.min(bmp.width, bmp.height);
+  const canvas = el('canvas');
+  canvas.width = canvas.height = 160;
+  canvas.getContext('2d').drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 160, 160);
+  return canvas.toDataURL('image/jpeg', 0.85);
+};
+
+const openProfile = () => {
+  let avatar = me.avatar || '';
+  const preview = el('span', { class: 'avatar xl' });
+  const refresh = () => {
+    const name = (user.value || me.username || '?').charAt(0).toUpperCase();
+    preview.replaceChildren(avatar ? el('img', { src: avatar, alt: '' }) : name);
+    remove.hidden = !avatar;
+  };
+  const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', hidden: true });
+  const remove = el('button', { class: 'btn ghost', type: 'button', onclick: () => { avatar = ''; file.value = ''; refresh(); } }, 'Quitar foto');
+  file.addEventListener('change', async () => {
+    if (!file.files[0]) return;
+    try { avatar = await avatarFromFile(file.files[0]); refresh(); } catch { toast('No se pudo leer la imagen.', true); }
+  });
+  const user = el('input', { name: 'username', value: me.username, required: true, maxLength: 60, autocomplete: 'username' });
+  const dname = el('input', { name: 'displayName', value: me.displayName || '', maxLength: 80, placeholder: 'Ej: Juan Pérez' });
+  const email = el('input', { name: 'email', type: 'email', value: me.email || '', maxLength: 120, placeholder: 'correo@usco.edu.co' });
+  user.addEventListener('input', refresh);
+  editorForm.replaceChildren(
+    el('h2', {}, 'Editar perfil'),
+    el('div', { class: 'profile-photo' }, preview, el('div', {}, el('button', { class: 'btn', type: 'button', onclick: () => file.click() }, 'Cambiar foto'), ' ', remove, el('small', {}, 'Se recorta en cuadrado. PNG, JPG o WEBP.')), file),
+    el('label', {}, 'Nombre para mostrar', dname),
+    el('label', {}, 'Usuario (para ingresar)', user),
+    el('label', {}, 'Correo', email),
+    el('p', {}, el('button', { class: 'btn ghost', type: 'button', onclick: () => { editor.close(); openTab('users'); } }, 'Cambiar contraseña')),
+    el('div', { class: 'actions' },
+      el('button', { class: 'btn ghost', type: 'button', onclick: () => editor.close() }, 'Cancelar'),
+      el('button', { class: 'btn', type: 'submit' }, 'Guardar')),
+  );
+  editorForm.onsubmit = async (ev) => {
+    ev.preventDefault();
+    try {
+      const saved = await api('PUT', '/api/admin/profile', { username: user.value, displayName: dname.value, email: email.value, avatar });
+      me = { ...me, ...saved }; applyProfile(); editor.close(); toast('Perfil actualizado.');
+    } catch (e) { fail(e); }
+  };
+  refresh();
+  editor.showModal();
+};
+$('menu-profile').addEventListener('click', () => { closeUserMenu(); openProfile(); });
 const closeUserMenu = () => { $('user-pop').hidden = true; $('user-btn').setAttribute('aria-expanded', 'false'); };
 $('user-btn').addEventListener('click', (e) => { e.stopPropagation(); const open = $('user-pop').hidden; $('user-pop').hidden = !open; $('user-btn').setAttribute('aria-expanded', String(open)); });
 document.addEventListener('click', (e) => { if (!e.target.closest('.usermenu')) closeUserMenu(); });
@@ -420,4 +482,4 @@ function addPasswordToggles(root) {
 addPasswordToggles(document);
 new MutationObserver(() => addPasswordToggles(document)).observe(document.body, { childList: true, subtree: true });
 
-api('GET', '/api/me').then((me) => showApp(me.username)).catch(showLogin);
+api('GET', '/api/me').then((p) => showApp(p)).catch(showLogin);

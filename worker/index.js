@@ -72,10 +72,22 @@ const currentUser = async (request, env) => {
   const token = parseCookies(request).sid;
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
   const th = await hashToken(token);
-  const row = await env.DB.prepare('SELECT u.id, u.username, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').bind(th).first();
+  const row = await env.DB.prepare('SELECT u.id, u.username, u.displayName, u.email, u.avatar, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').bind(th).first();
   if (!row) return null;
   if (row.expiresAt < Date.now()) { await env.DB.prepare('DELETE FROM sessions WHERE tokenHash = ?').bind(th).run(); return null; }
-  return { id: row.id, username: row.username };
+  return { id: row.id, username: row.username, displayName: row.displayName || '', email: row.email || '', avatar: row.avatar || '' };
+};
+
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const parseProfile = (b) => {
+  const username = String(b.username || '').trim();
+  if (!/^[\w.@-]{3,60}$/.test(username)) throw new HttpError(400, 'Usuario no válido (3 a 60 caracteres: letras, números, . _ - @).');
+  const displayName = String(b.displayName || '').trim().slice(0, 80);
+  const email = String(b.email || '').trim().slice(0, 120);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'Correo no válido.');
+  const avatar = String(b.avatar || '');
+  if (avatar && (avatar.length > 80_000 || !AVATAR_RE.test(avatar))) throw new HttpError(400, 'Imagen de perfil no válida.');
+  return { username, displayName, email, avatar };
 };
 
 // El primer administrador se crea con los secretos ADMIN_USER y ADMIN_PASSWORD (solo si aún no hay usuarios).
@@ -241,8 +253,16 @@ const handleApi = async (request, env, url) => {
   }
 
   const user = await currentUser(request, env);
-  if (route === '/api/me') return user ? json(200, { username: user.username }) : json(401, { error: 'No autenticado.' });
+  if (route === '/api/me') return user ? json(200, user) : json(401, { error: 'No autenticado.' });
   if (!user) throw new HttpError(401, 'Debe iniciar sesión.');
+
+  if (route === '/api/admin/profile' && method === 'PUT') {
+    const p = parseProfile(await readJson(request, 100_000));
+    const clash = await env.DB.prepare('SELECT id FROM users WHERE username = ? AND id <> ?').bind(p.username, user.id).first();
+    if (clash) throw new HttpError(409, 'Ese usuario ya existe.');
+    await env.DB.prepare('UPDATE users SET username = ?, displayName = ?, email = ?, avatar = ? WHERE id = ?').bind(p.username, p.displayName, p.email, p.avatar, user.id).run();
+    return json(200, { id: user.id, ...p });
+  }
 
   if (route === '/api/admin/settings') {
     if (method === 'GET') return json(200, await getSettings(env));

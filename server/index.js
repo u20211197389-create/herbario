@@ -62,10 +62,22 @@ const parseCookies = (req) => Object.fromEntries(String(req.headers.cookie || ''
 const currentUser = (req) => {
   const token = parseCookies(req).sid;
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
-  const row = db.prepare('SELECT u.id, u.username, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').get(hashToken(token));
+  const row = db.prepare('SELECT u.id, u.username, u.displayName, u.email, u.avatar, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').get(hashToken(token));
   if (!row) return null;
   if (row.expiresAt < Date.now()) { db.prepare('DELETE FROM sessions WHERE tokenHash = ?').run(hashToken(token)); return null; }
-  return { id: row.id, username: row.username };
+  return { id: row.id, username: row.username, displayName: row.displayName || '', email: row.email || '', avatar: row.avatar || '' };
+};
+
+const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
+const parseProfile = (b) => {
+  const username = String(b.username || '').trim();
+  if (!/^[\w.@-]{3,60}$/.test(username)) throw new HttpError(400, 'Usuario no válido (3 a 60 caracteres: letras, números, . _ - @).');
+  const displayName = String(b.displayName || '').trim().slice(0, 80);
+  const email = String(b.email || '').trim().slice(0, 120);
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new HttpError(400, 'Correo no válido.');
+  const avatar = String(b.avatar || '');
+  if (avatar && (avatar.length > 80_000 || !AVATAR_RE.test(avatar))) throw new HttpError(400, 'Imagen de perfil no válida.');
+  return { username, displayName, email, avatar };
 };
 
 const cookie = (value, maxAge) => `sid=${value}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${maxAge}${SECURE ? '; Secure' : ''}`;
@@ -167,8 +179,15 @@ const handleApi = async (req, res, url) => {
   }
 
   const user = currentUser(req);
-  if (route === '/api/me') return user ? json(res, 200, { username: user.username }) : json(res, 401, { error: 'No autenticado.' });
-  if (!user) throw new HttpError(401, 'Debe iniciar sesiÃ³n.');
+  if (route === '/api/me') return user ? json(res, 200, user) : json(res, 401, { error: 'No autenticado.' });
+  if (!user) throw new HttpError(401, 'Debe iniciar sesión.');
+
+  if (route === '/api/admin/profile' && method === 'PUT') {
+    const p = parseProfile(await readJson(req, 100_000));
+    if (db.prepare('SELECT id FROM users WHERE username = ? AND id <> ?').get(p.username, user.id)) throw new HttpError(409, 'Ese usuario ya existe.');
+    db.prepare('UPDATE users SET username = ?, displayName = ?, email = ?, avatar = ? WHERE id = ?').run(p.username, p.displayName, p.email, p.avatar, user.id);
+    return json(res, 200, { id: user.id, ...p });
+  }
 
   if (route === '/api/admin/settings') {
     if (method === 'GET') return json(res, 200, getSettings());
