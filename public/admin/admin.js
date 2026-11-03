@@ -288,7 +288,7 @@ const renderUsers = async () => {
   const nu = el('input', { required: true, maxLength: 60, autocomplete: 'off' });
   const np = el('input', { type: 'password', required: true, maxLength: 200, autocomplete: 'new-password' });
   const addForm = el('form', { class: 'card' }, el('h3', {}, 'Nuevo administrador'),
-    el('div', { class: 'grid' }, el('label', {}, 'Usuario', nu), el('label', {}, 'Contraseña (mín. 10, letras y números)', np)),
+    el('div', { class: 'grid' }, el('label', {}, 'Correo', nu), el('label', {}, 'Contraseña (mín. 10, letras y números)', np)),
     el('div', { class: 'row' }, el('button', { class: 'btn', type: 'submit' }, 'Crear')));
   addForm.onsubmit = async (ev) => {
     ev.preventDefault();
@@ -304,7 +304,7 @@ const renderUsers = async () => {
     try { await api('POST', '/api/admin/password', { current: cur.value, next: nxt.value }); cur.value = ''; nxt.value = ''; toast('Contraseña cambiada.'); } catch (e) { fail(e); }
   };
   $('panel').replaceChildren(el('h2', {}, 'Usuarios administradores'),
-    el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Usuario'), el('th', {}, 'Creado'), el('th', {}, ''))), body)),
+    el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Correo'), el('th', {}, 'Creado'), el('th', {}, ''))), body)),
     el('br'), addForm, pwForm);
 };
 
@@ -420,16 +420,14 @@ const openProfile = () => {
     if (!file.files[0]) return;
     try { avatar = await avatarFromFile(file.files[0]); refresh(); } catch { toast('No se pudo leer la imagen.', true); }
   });
-  const user = el('input', { name: 'username', value: me.username, required: true, maxLength: 60, autocomplete: 'username' });
+  const user = el('input', { name: 'username', type: 'email', value: me.username, required: true, maxLength: 60, autocomplete: 'username', placeholder: 'correo@usco.edu.co' });
   const dname = el('input', { name: 'displayName', value: me.displayName || '', maxLength: 80, placeholder: 'Ej: Juan Pérez' });
-  const email = el('input', { name: 'email', type: 'email', value: me.email || '', maxLength: 120, placeholder: 'correo@usco.edu.co' });
   user.addEventListener('input', refresh);
   editorForm.replaceChildren(
     el('h2', {}, 'Editar perfil'),
     el('div', { class: 'profile-photo' }, preview, el('div', {}, el('button', { class: 'btn', type: 'button', onclick: () => file.click() }, 'Cambiar foto'), ' ', remove, el('small', {}, 'Se recorta en cuadrado. PNG, JPG o WEBP.')), file),
     el('label', {}, 'Nombre para mostrar', dname),
-    el('label', {}, 'Usuario (para ingresar)', user),
-    el('label', {}, 'Correo', email),
+    el('label', {}, 'Correo (para ingresar)', user),
     el('p', {}, el('button', { class: 'btn ghost', type: 'button', onclick: () => { editor.close(); openTab('users'); } }, 'Cambiar contraseña')),
     el('div', { class: 'actions' },
       el('button', { class: 'btn ghost', type: 'button', onclick: () => editor.close() }, 'Cancelar'),
@@ -438,7 +436,7 @@ const openProfile = () => {
   editorForm.onsubmit = async (ev) => {
     ev.preventDefault();
     try {
-      const saved = await api('PUT', '/api/admin/profile', { username: user.value, displayName: dname.value, email: email.value, avatar });
+      const saved = await api('PUT', '/api/admin/profile', { username: user.value, displayName: dname.value, email: user.value, avatar });
       me = { ...me, ...saved }; applyProfile(); editor.close(); toast('Perfil actualizado.');
     } catch (e) { fail(e); }
   };
