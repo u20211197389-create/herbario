@@ -676,3 +676,14 @@ main { padding-bottom: 40px; }
 @media (max-width: 600px) { .view.panel, .view.results:not([data-view="inicio"]) { width: 100%; border-radius: 0; margin-top: 0; padding: 28px 18px; } }
 
 .pub-table th a{color:var(--maroon);text-decoration:none}.pub-table th a:hover{text-decoration:underline}.pubd-cover img{max-width:200px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.15)}.libd-nav button:disabled{opacity:.4;cursor:default}
+
+/* Títulos de página elegantes */
+.page-title {
+  font-family: Georgia, "Times New Roman", serif;
+  text-transform: none !important; font-weight: 600; letter-spacing: .005em;
+  font-size: clamp(30px, 4vw, 44px) !important; line-height: 1.15;
+  padding-bottom: 18px !important; margin-bottom: 28px !important;
+}
+.page-title::after { width: 64px; height: 2px; border-radius: 2px; background: var(--gold); }
+.panel h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; font-size: 21px; }
+.libd-head .page-title { font-size: clamp(26px, 3.4vw, 36px) !important; }
