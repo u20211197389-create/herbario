@@ -385,4 +385,30 @@ $('login-form').addEventListener('submit', async (ev) => {
 });
 $('logout').addEventListener('click', async () => { try { await api('POST', '/api/logout'); } catch { /* sesión ya cerrada */ } showLogin(); });
 
+function addPasswordToggles(root) {
+  root.querySelectorAll('input[type="password"]:not([data-toggle])').forEach((inp) => {
+    inp.dataset.toggle = '1';
+    const wrap = document.createElement('span');
+    wrap.className = 'pass-wrap';
+    inp.parentNode.insertBefore(wrap, inp);
+    wrap.appendChild(inp);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'pass-toggle';
+    btn.textContent = '🔍';
+    btn.title = 'Mostrar contraseña';
+    btn.setAttribute('aria-label', 'Mostrar contraseña');
+    btn.addEventListener('click', () => {
+      const show = inp.type === 'password';
+      inp.type = show ? 'text' : 'password';
+      btn.classList.toggle('on', show);
+      btn.title = show ? 'Ocultar contraseña' : 'Mostrar contraseña';
+      btn.setAttribute('aria-label', btn.title);
+    });
+    wrap.appendChild(btn);
+  });
+}
+addPasswordToggles(document);
+new MutationObserver(() => addPasswordToggles(document)).observe(document.body, { childList: true, subtree: true });
+
 api('GET', '/api/me').then((me) => showApp(me.username)).catch(showLogin);
