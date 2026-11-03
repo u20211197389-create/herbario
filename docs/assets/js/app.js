@@ -630,6 +630,7 @@ downloadDialog.querySelector('#dialog-one').addEventListener('click', () => {
 });
 
 downloadDialog.querySelector('#dialog-cancel').addEventListener('click', () => downloadDialog.close());
+downloadDialog.querySelector('#dialog-x').addEventListener('click', () => downloadDialog.close());
 
 const renderStats = () => {
   const list = herbariumSpecimens;

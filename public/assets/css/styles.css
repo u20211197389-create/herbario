@@ -535,3 +535,12 @@ input:focus-visible {
 .btn-send { background: var(--maroon); }
 .btn-send:hover { background: var(--maroon-dark); }
 .btn-send:disabled { opacity: .6; cursor: wait; }
+
+/* Diálogo de descarga con el mismo formato que el de solicitud */
+.download-dialog { width: min(560px, 94vw); padding: 0; color: var(--text); }
+.download-dialog .request-head h3 { margin: 0; }
+.download-dialog .dialog-body { padding: 0 24px 22px; }
+.download-dialog .request-field select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 6px; font: inherit; font-size: 16px; }
+.download-dialog .request-field select:focus { outline: none; border-color: var(--maroon); }
+.download-dialog .dialog-footer { margin: 0; padding: 18px 24px; }
+.download-dialog .request-head { margin: 0; }
