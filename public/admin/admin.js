@@ -304,7 +304,7 @@ const renderRequests = async () => {
     } }, 'Copiar');
     return el('td', {}, expired ? `Venció ${new Date(r.expiresAt).toLocaleDateString()}` : el('div', { class: 'row' }, input, copy));
   };
-  const body = el('tbody', {}, ...rows.map((r) => el('tr', {}, el('td', {}, r.createdAt), el('td', {}, r.catalogNumber), el('td', {}, r.email), el('td', {}, r.reason),
+  const body = el('tbody', {}, ...rows.map((r) => el('tr', {}, el('td', {}, r.createdAt), el('td', {}, `${r.kind === 'descarga' ? 'Descarga: ' : 'Imagen: '}${r.catalogNumber}`), el('td', {}, r.email), el('td', {}, r.reason),
     el('td', {}, r.status), linkCell(r),
     el('td', { class: 'actions' },
       ...(r.status === 'pendiente' ? [el('button', { class: 'btn small', type: 'button', onclick: () => decide(r.id, 'aprobada') }, 'Aprobar'), el('button', { class: 'btn small danger', type: 'button', onclick: () => decide(r.id, 'rechazada') }, 'Rechazar')] : []),
@@ -312,8 +312,8 @@ const renderRequests = async () => {
         if (!confirm('¿Eliminar esta solicitud?')) return;
         try { await api('DELETE', `/api/admin/solicitudes/${r.id}`); renderRequests().catch(fail); } catch (e) { fail(e); }
       } }, 'Eliminar')))));
-  $('panel').replaceChildren(el('h2', {}, 'Solicitudes de imagen'),
-    el('p', {}, 'Al aprobar una solicitud se genera un enlace privado (válido 7 días). Cópielo y envíelo al correo del solicitante.'),
+  $('panel').replaceChildren(el('h2', {},   'Solicitudes de imagen y descarga'),
+      el('p', {}, 'Imagen: al aprobar se genera un enlace privado (válido 7 días) que debe copiar y enviar al correo del solicitante. Descarga: al aprobar, envíe usted el archivo al correo indicado.'),
     rows.length ? el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Fecha', 'Ejemplar', 'Correo', 'Motivo', 'Estado', 'Enlace', ''].map((h) => el('th', {}, h)))), body)) : el('p', {}, 'No hay solicitudes.'));
 };
 

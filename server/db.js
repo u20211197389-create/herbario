@@ -65,6 +65,9 @@ CREATE TABLE IF NOT EXISTS image_requests (
   status TEXT NOT NULL DEFAULT 'pendiente', token TEXT, expiresAt INTEGER,
   createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, decidedAt TEXT);
 `);
+if (!db.prepare('PRAGMA table_info(image_requests)').all().some((c) => c.name === 'kind')) {
+  db.exec("ALTER TABLE image_requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'imagen'");
+}
 
 // Migración: bases creadas antes de existir ciertas columnas.
 for (const e of Object.values(ENTITIES)) {

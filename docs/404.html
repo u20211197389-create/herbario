@@ -75,24 +75,6 @@
           Descargar XLSX
         </button>
       </div>
-      <dialog class="download-dialog" id="download-dialog" aria-labelledby="dialog-title">
-        <div class="request-head">
-          <h3 id="dialog-title">Descargar XLSX</h3>
-          <button class="request-x" id="dialog-x" type="button" aria-label="Cerrar">&times;</button>
-        </div>
-        <div class="dialog-body">
-          <p class="request-note">Descargue todos los resultados de la búsqueda o elija un ejemplar específico.</p>
-          <button class="dialog-option" id="dialog-all" type="button">Descargar todos los resultados (<span class="dialog-all-count"></span>)</button>
-          <p class="dialog-or">o descargar un ejemplar específico</p>
-          <label class="request-field">Ejemplar
-            <select id="download-choice"></select>
-          </label>
-        </div>
-        <div class="request-buttons dialog-footer">
-          <button class="btn-close" id="dialog-cancel" type="button">Cerrar</button>
-          <button class="btn-send" id="dialog-one" type="button">Descargar este ejemplar</button>
-        </div>
-      </dialog>
       <div class="specimen-grid" id="specimen-results"></div>
     </section>
 
@@ -106,7 +88,7 @@
         <label class="request-field">Correo electrónico <span class="req">*</span>
           <input id="request-email" type="email" maxlength="150" autocomplete="email" required>
         </label>
-        <label class="request-field">Motivo de la solicitud <span class="req">*</span>
+        <label class="request-field" id="request-reason-label">Motivo de la solicitud <span class="req">*</span>
           <textarea id="request-reason" rows="4" maxlength="1000" required></textarea>
         </label>
         <p class="request-msg" id="request-msg" role="alert" hidden></p>

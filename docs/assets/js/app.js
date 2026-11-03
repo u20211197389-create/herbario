@@ -22,8 +22,6 @@ const ICONS = {
   pin: 'M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Zm0-8a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z',
 };
 
-const downloadDialog = document.querySelector('#download-dialog');
-const downloadChoice = document.querySelector('#download-choice');
 let currentResults = herbariumSpecimens;
 let currentDescription = 'Todos los ejemplares';
 
@@ -194,6 +192,12 @@ const requestDialog = document.getElementById('request-dialog');
 const requestForm = document.getElementById('request-form');
 const requestMsg = document.getElementById('request-msg');
 let requestCatalog = '';
+let requestKind = 'imagen';
+
+const REQUEST_TEXTS = {
+  imagen: ['Solicitar ver la imagen', 'Debe indicar un correo electrónico válido. El herbario revisará su solicitud y, si es aprobada, le enviará un enlace para ver la imagen del ejemplar.', 'Motivo de la solicitud', 'Enviar solicitud'],
+  descarga: ['Solicitar descarga de datos', 'Debe indicar un correo electrónico válido. El herbario revisará su solicitud y, si es aprobada, le enviará a su correo el archivo con los datos solicitados.', 'Motivo de la descarga', 'Enviar solicitud']
+};
 
 const setRequestMsg = (text, ok) => {
   requestMsg.textContent = text;
@@ -201,8 +205,14 @@ const setRequestMsg = (text, ok) => {
   requestMsg.hidden = !text;
 };
 
-const openRequestDialog = (specimen) => {
+const openRequestDialog = (specimen, kind = 'imagen') => {
   requestCatalog = specimen.catalogNumber;
+  requestKind = kind;
+  const [title, note, reasonLabel, send] = REQUEST_TEXTS[kind];
+  document.getElementById('request-title').textContent = title;
+  document.getElementById('request-note').textContent = note;
+  document.getElementById('request-reason-label').firstChild.textContent = `${reasonLabel} `;
+  document.getElementById('request-send').textContent = send;
   requestForm.reset();
   setRequestMsg('');
   document.getElementById('request-send').disabled = false;
@@ -219,8 +229,8 @@ requestForm.addEventListener('submit', async (event) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setRequestMsg('Escriba un correo electrónico válido.');
   if (reason.length < 5) return setRequestMsg('Cuéntenos brevemente el motivo de la solicitud.');
   if (window.SITE_STATIC) {
-    const body = `Ejemplar: ${requestCatalog}\nCorreo: ${email}\nMotivo: ${reason}`;
-    window.location.href = `mailto:herbario@usco.edu.co?subject=${encodeURIComponent('Solicitud de imagen ' + requestCatalog)}&body=${encodeURIComponent(body)}`;
+    const body = `${requestKind === 'descarga' ? 'Descarga' : 'Imagen'}: ${requestCatalog}\nCorreo: ${email}\nMotivo: ${reason}`;
+    window.location.href = `mailto:herbario@usco.edu.co?subject=${encodeURIComponent(`Solicitud de ${requestKind === 'descarga' ? 'descarga' : 'imagen'}`)}&body=${encodeURIComponent(body)}`;
     return setRequestMsg('Se abrió su programa de correo para enviar la solicitud.', true);
   }
   const send = document.getElementById('request-send');
@@ -229,7 +239,7 @@ requestForm.addEventListener('submit', async (event) => {
     const response = await fetch('/api/solicitudes-imagen', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'herbario' },
-      body: JSON.stringify({ catalogNumber: requestCatalog, email, reason })
+      body: JSON.stringify({ catalogNumber: requestCatalog, email, reason, kind: requestKind })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || 'No se pudo enviar la solicitud.');
@@ -347,7 +357,7 @@ const renderDetail = (specimen) => {
 
   const download = createElement('button', 'btn-download is-secondary', 'Descargar este ejemplar (XLSX)');
   download.type = 'button';
-  download.addEventListener('click', () => downloadXlsx([specimen]));
+  download.addEventListener('click', () => openRequestDialog(specimen, 'descarga'));
 
   const info = createElement('div');
   info.append(name, changes, download, list);
@@ -610,27 +620,8 @@ advancedForm.addEventListener('submit', (event) => {
 });
 
 downloadButton.addEventListener('click', () => {
-  downloadChoice.replaceChildren();
-  currentResults.forEach((specimen) => {
-    downloadChoice.append(new Option(`${catalogLabel(specimen)} · ${specimen.scientificName}`, specimen.catalogNumber));
-  });
-  downloadDialog.querySelector('.dialog-all-count').textContent = String(currentResults.length);
-  downloadDialog.showModal();
+  openRequestDialog({ catalogNumber: `Todos los resultados de la búsqueda (${currentResults.length}): ${currentResults.map((s) => s.catalogNumber).join(', ')}` }, 'descarga');
 });
-
-downloadDialog.querySelector('#dialog-all').addEventListener('click', () => {
-  downloadXlsx(currentResults);
-  downloadDialog.close();
-});
-
-downloadDialog.querySelector('#dialog-one').addEventListener('click', () => {
-  const specimen = currentResults.find((item) => item.catalogNumber === downloadChoice.value);
-  if (specimen) downloadXlsx([specimen]);
-  downloadDialog.close();
-});
-
-downloadDialog.querySelector('#dialog-cancel').addEventListener('click', () => downloadDialog.close());
-downloadDialog.querySelector('#dialog-x').addEventListener('click', () => downloadDialog.close());
 
 const renderStats = () => {
   const list = herbariumSpecimens;

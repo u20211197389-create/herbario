@@ -108,14 +108,18 @@ const handleApi = async (req, res, url) => {
     const recent = (imageRequestAttempts.get(ip) || []).filter((t) => now - t < 60 * 60 * 1000);
     if (recent.length >= 5) throw new HttpError(429, 'Demasiadas solicitudes. Intente de nuevo más tarde.');
     const body = await readJson(req, 10_000);
-    const catalogNumber = String(body.catalogNumber || '').slice(0, 20);
+    const kind = body.kind === 'descarga' ? 'descarga' : 'imagen';
+    const catalogNumber = String(body.catalogNumber || '').slice(0, kind === 'descarga' ? 200 : 20);
     const email = String(body.email || '').trim();
     const reason = String(body.reason || '').trim();
     if (email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new HttpError(400, 'Indique un correo electrónico válido.');
     if (reason.length < 5 || reason.length > 1000) throw new HttpError(400, 'Indique el motivo de la solicitud (entre 5 y 1000 caracteres).');
-    const specimen = db.prepare('SELECT image FROM specimens WHERE catalogNumber = ?').get(catalogNumber);
-    if (!specimen || !specimen.image) throw new HttpError(404, 'Este ejemplar no tiene imagen disponible.');
-    db.prepare('INSERT INTO image_requests (catalogNumber, email, reason) VALUES (?, ?, ?)').run(catalogNumber, email, reason);
+    if (!catalogNumber) throw new HttpError(400, 'Falta el ejemplar.');
+    if (kind === 'imagen') {
+      const specimen = db.prepare('SELECT image FROM specimens WHERE catalogNumber = ?').get(catalogNumber);
+      if (!specimen || !specimen.image) throw new HttpError(404, 'Este ejemplar no tiene imagen disponible.');
+    }
+    db.prepare('INSERT INTO image_requests (catalogNumber, email, reason, kind) VALUES (?, ?, ?, ?)').run(catalogNumber, email, reason, kind);
     recent.push(now);
     imageRequestAttempts.set(ip, recent);
     return json(res, 201, { ok: true });
@@ -181,12 +185,15 @@ const handleApi = async (req, res, url) => {
   const requestMatch = route.match(/^\/api\/admin\/solicitudes(?:\/(\d+))?$/);
   if (requestMatch) {
     const id = requestMatch[1] ? Number(requestMatch[1]) : null;
-    if (!id && method === 'GET') return json(res, 200, db.prepare('SELECT id, catalogNumber, email, reason, status, token, expiresAt, createdAt, decidedAt FROM image_requests ORDER BY id DESC').all().map((r) => ({ ...r })));
+    if (!id && method === 'GET') return json(res, 200, db.prepare('SELECT id, catalogNumber, email, reason, status, token, expiresAt, createdAt, decidedAt, kind FROM image_requests ORDER BY id DESC').all().map((r) => ({ ...r })));
     if (id && method === 'PATCH') {
       const { status } = await readJson(req, 1_000);
       if (status !== 'aprobada' && status !== 'rechazada') throw new HttpError(400, 'Estado no válido.');
-      const token = status === 'aprobada' ? newToken() : null;
-      const expiresAt = status === 'aprobada' ? Date.now() + IMAGE_ACCESS_MS : null;
+      const kindRow = db.prepare('SELECT kind FROM image_requests WHERE id = ?').get(id);
+      if (!kindRow) throw new HttpError(404, 'Solicitud no encontrada.');
+      const grant = status === 'aprobada' && kindRow.kind === 'imagen';
+      const token = grant ? newToken() : null;
+      const expiresAt = grant ? Date.now() + IMAGE_ACCESS_MS : null;
       const r = db.prepare("UPDATE image_requests SET status = ?, token = ?, expiresAt = ?, decidedAt = CURRENT_TIMESTAMP WHERE id = ?").run(status, token, expiresAt, id);
       if (!r.changes) throw new HttpError(404, 'Solicitud no encontrada.');
       return json(res, 200, { ok: true });
