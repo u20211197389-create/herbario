@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { db, ROOT, UPLOAD_DIR, ENTITIES, insert, update, remove, list, clean, getSettings, saveSettings, publicData } from './db.js';
+import { mailConfigured, sendMail } from './mailer.js';
 import { hashPassword, verifyPassword, newToken, hashToken, passwordProblem } from './security.js';
 
 const PUBLIC_DIR = path.join(ROOT, 'public');
@@ -91,6 +92,20 @@ const parseId = (entity, raw) => {
   const id = decodeURIComponent(raw);
   if (entity === 'specimens') return /^[\w.-]{1,20}$/.test(id) ? id : null;
   return /^\d+$/.test(id) ? Number(id) : null;
+};
+
+const buildDecisionMail = ({ kind, email, catalogNumber }, status, token, origin) => {
+  const what = kind === 'descarga' ? 'descarga de datos' : `imagen del ejemplar ${catalogNumber}`;
+  const sign = '\n\nHerbario SURCO\nUniversidad Surcolombiana\nherbario@usco.edu.co';
+  let text;
+  if (status === 'aprobada') {
+    text = kind === 'imagen'
+      ? `Hola,\n\nSu solicitud de ${what} fue aprobada. Puede verla con este enlace personal, válido por 7 días:\n\n${origin}/ejemplar/${encodeURIComponent(catalogNumber)}/?acceso=${token}\n\nPor favor no lo comparta.${sign}`
+      : `Hola,\n\nSu solicitud de ${what} (${catalogNumber}) fue aprobada. El herbario le enviará los datos solicitados en un mensaje aparte.${sign}`;
+  } else {
+    text = `Hola,\n\nLamentamos informarle que su solicitud de ${what} no fue aprobada. Si desea más información, responda a este correo.${sign}`;
+  }
+  return { to: email, subject: `Herbario SURCO: respuesta a su solicitud de ${kind === 'descarga' ? 'descarga' : 'imagen'}`, text };
 };
 
 const imageRequestAttempts = new Map();
@@ -189,14 +204,22 @@ const handleApi = async (req, res, url) => {
     if (id && method === 'PATCH') {
       const { status } = await readJson(req, 1_000);
       if (status !== 'aprobada' && status !== 'rechazada') throw new HttpError(400, 'Estado no válido.');
-      const kindRow = db.prepare('SELECT kind FROM image_requests WHERE id = ?').get(id);
+      const kindRow = db.prepare('SELECT kind, email, catalogNumber FROM image_requests WHERE id = ?').get(id);
       if (!kindRow) throw new HttpError(404, 'Solicitud no encontrada.');
       const grant = status === 'aprobada' && kindRow.kind === 'imagen';
       const token = grant ? newToken() : null;
       const expiresAt = grant ? Date.now() + IMAGE_ACCESS_MS : null;
       const r = db.prepare("UPDATE image_requests SET status = ?, token = ?, expiresAt = ?, decidedAt = CURRENT_TIMESTAMP WHERE id = ?").run(status, token, expiresAt, id);
       if (!r.changes) throw new HttpError(404, 'Solicitud no encontrada.');
-      return json(res, 200, { ok: true });
+
+      const origin = (process.env.PUBLIC_URL || `http://${req.headers.host || `${HOST}:${PORT}`}`).replace(/\/+$/, '');
+      const mail = buildDecisionMail(kindRow, status, token, origin);
+      let mailSent = false;
+      let mailError = '';
+      if (mailConfigured()) {
+        try { await sendMail(mail); mailSent = true; } catch (e) { mailError = e.message; console.error('Error enviando correo:', e.message); }
+      }
+      return json(res, 200, { ok: true, mailSent, mailError, mail });
     }
     if (id && method === 'DELETE') {
       db.prepare('DELETE FROM image_requests WHERE id = ?').run(id);

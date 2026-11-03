@@ -296,7 +296,17 @@ const renderRequests = async () => {
   const rows = requestFilter === 'todas' ? all : all.filter((r) => r.kind === requestFilter);
   const pending = all.filter((r) => r.status === 'pendiente').length;
   const decide = async (id, status) => {
-    try { await api('PATCH', `/api/admin/solicitudes/${id}`, { status }); toast(status === 'aprobada' ? 'Solicitud aprobada.' : 'Solicitud rechazada.'); renderRequests().catch(fail); } catch (e) { fail(e); }
+    try {
+      const out = await api('PATCH', `/api/admin/solicitudes/${id}`, { status });
+      const decision = status === 'aprobada' ? 'Solicitud aprobada' : 'Solicitud rechazada';
+      if (out.mailSent) toast(`${decision}. Se envió el correo al solicitante.`);
+      else {
+        toast(`${decision}. No se pudo enviar el correo automáticamente${out.mailError ? `: ${out.mailError}` : ' (falta configurar SMTP)'}; se abrirá su programa de correo.`);
+        const { to, subject, text } = out.mail;
+        window.location.href = `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(text)}`;
+      }
+      renderRequests().catch(fail);
+    } catch (e) { fail(e); }
   };
   const linkCell = (r) => {
     if (r.status !== 'aprobada' || !r.token) return el('td', {}, '—');
@@ -322,7 +332,7 @@ const renderRequests = async () => {
       el('label', {}, 'Mostrar ', el('select', { onchange: (ev) => { requestFilter = ev.target.value; renderRequests().catch(fail); } },
         ...[['todas', 'Todas'], ['descarga', 'Solicitudes de descarga'], ['imagen', 'Solicitudes de imagen']].map(([v, l]) => el('option', { value: v, selected: v === requestFilter }, l)))),
       el('strong', {}, `Pendientes: ${pending} · Total: ${all.length}`)),
-      el('p', {}, 'Imagen: al aprobar se genera un enlace privado (válido 7 días) que debe copiar y enviar al correo del solicitante. Descarga: al aprobar, envíe usted el archivo al correo indicado.'),
+      el('p', {}, 'Al aprobar o rechazar, el sistema envía un correo al solicitante (si el SMTP está configurado; si no, se abre su programa de correo con el mensaje listo). Imagen: el correo incluye un enlace privado válido 7 días. Descarga: envíe usted el archivo en un mensaje aparte.'),
     rows.length ? el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Fecha', 'Ejemplar', 'Correo', 'Motivo', 'Estado', 'Enlace', ''].map((h) => el('th', {}, h)))), body)) : el('p', {}, 'No hay solicitudes.'));
 };
 
