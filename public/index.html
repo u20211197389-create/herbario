@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Herbario SURCO de la Universidad Surcolombiana: consulta los datos de colecta de sus especímenes.">
   <title>Herbario SURCO | Universidad Surcolombiana</title>
-  <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
+  <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg?v=5">
   <link rel="stylesheet" href="/assets/css/styles.css">
   <script src="/assets/js/data.js" defer></script>
   <script src="/assets/js/colombia-map.js" defer></script>
@@ -39,13 +39,7 @@
   <main id="contenido">
     <section class="hero view" data-view="inicio" id="inicio" aria-labelledby="hero-title">
       <div class="hero-logo" aria-hidden="true">
-        <svg viewBox="0 0 240 320" fill="none">
-          <path class="wreath" d="M120 250C60 238 36 180 44 90c34 22 58 62 76 160Z"/>
-          <path class="wreath" d="M120 250c60-12 84-70 76-160-34 22-58 62-76 160Z"/>
-          <path class="wreath-line" d="M120 250C92 190 70 140 52 96m68 154c28-60 50-110 68-154"/>
-          <path class="wreath-line" d="M120 250l-26 24m26-24 26 24"/>
-          <text x="120" y="188" text-anchor="middle" class="wreath-letter">S</text>
-        </svg>
+        <div class="crest-crop"><img src="assets/img/logo-herbario-surco.png" alt=""></div>
         <strong>HERBARIO</strong>
         <span>SURCO</span>
       </div>
@@ -95,6 +89,27 @@
       </dialog>
       <div class="specimen-grid" id="specimen-results"></div>
     </section>
+
+    <dialog class="request-dialog" id="request-dialog" aria-labelledby="request-title">
+      <form id="request-form" novalidate>
+        <div class="request-head">
+          <h3 id="request-title">Solicitar ver la imagen</h3>
+          <button class="request-x" id="request-x" type="button" aria-label="Cerrar">&times;</button>
+        </div>
+        <p class="request-note" id="request-note">Debe indicar un correo electrónico válido. El herbario revisará su solicitud y, si es aprobada, le enviará un enlace para ver la imagen del ejemplar.</p>
+        <label class="request-field">Correo electrónico <span class="req">*</span>
+          <input id="request-email" type="email" maxlength="150" autocomplete="email" required>
+        </label>
+        <label class="request-field">Motivo de la solicitud <span class="req">*</span>
+          <textarea id="request-reason" rows="4" maxlength="1000" required></textarea>
+        </label>
+        <p class="request-msg" id="request-msg" role="alert" hidden></p>
+        <div class="request-buttons">
+          <button class="btn-close" id="request-cancel" type="button">Cerrar</button>
+          <button class="btn-send" id="request-send" type="submit">Enviar solicitud</button>
+        </div>
+      </form>
+    </dialog>
 
     <section class="results view" data-view="ejemplar" id="ejemplar" aria-labelledby="detail-title">
       <h2 class="page-title" id="detail-title"></h2>

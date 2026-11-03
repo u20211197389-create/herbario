@@ -7,14 +7,20 @@ import { db, ROOT, UPLOAD_DIR, publicData } from '../server/db.js';
 const BASE = (process.env.SITE_BASE ?? '/herbario').replace(/\/+$/, '');
 const PUBLIC = path.join(ROOT, 'public');
 const OUT = path.join(ROOT, 'docs');
+const specimenImages = new Set(db.prepare("SELECT image FROM specimens WHERE image LIKE '/uploads/%'").all().map(({ image }) => path.basename(image)));
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
 fs.cpSync(path.join(PUBLIC, 'assets'), path.join(OUT, 'assets'), { recursive: true });
-if (fs.existsSync(UPLOAD_DIR)) fs.cpSync(UPLOAD_DIR, path.join(OUT, 'uploads'), { recursive: true });
+if (fs.existsSync(UPLOAD_DIR)) {
+  fs.cpSync(UPLOAD_DIR, path.join(OUT, 'uploads'), {
+    recursive: true,
+    filter: (source) => !specimenImages.has(path.basename(source)),
+  });
+}
 
 const d = publicData();
-const js = `'use strict';\nwindow.SITE_BASE = ${JSON.stringify(BASE)};\nconst herbariumSpecimens = ${JSON.stringify(d.specimens)};\nconst libraryItems = ${JSON.stringify(d.libraryItems)};\nconst publications = ${JSON.stringify(d.publications)};\nconst siteMembers = ${JSON.stringify(d.siteMembers)};\nconst siteSettings = ${JSON.stringify(d.siteSettings)};\n`
+const js = `'use strict';\nwindow.SITE_BASE = ${JSON.stringify(BASE)};\nwindow.SITE_STATIC = true;\nconst herbariumSpecimens = ${JSON.stringify(d.specimens)};\nconst libraryItems = ${JSON.stringify(d.libraryItems)};\nconst publications = ${JSON.stringify(d.publications)};\nconst siteMembers = ${JSON.stringify(d.siteMembers)};\nconst siteSettings = ${JSON.stringify(d.siteSettings)};\n`
   .replace(/</g, '\\u003c')
   .replaceAll('"/uploads/', `"${BASE}/uploads/`);
 fs.writeFileSync(path.join(OUT, 'assets', 'js', 'data.js'), js);

@@ -93,12 +93,42 @@ const parseId = (entity, raw) => {
   return /^\d+$/.test(id) ? Number(id) : null;
 };
 
+const imageRequestAttempts = new Map();
+const IMAGE_ACCESS_MS = 7 * 24 * 60 * 60 * 1000;
+
 const handleApi = async (req, res, url) => {
   const method = req.method;
   const route = url.pathname;
   const ip = req.socket.remoteAddress || 'x';
 
   if (method !== 'GET' && method !== 'HEAD' && !req.headers['x-requested-with']) throw new HttpError(403, 'Solicitud no permitida.');
+
+  if (route === '/api/solicitudes-imagen' && method === 'POST') {
+    const now = Date.now();
+    const recent = (imageRequestAttempts.get(ip) || []).filter((t) => now - t < 60 * 60 * 1000);
+    if (recent.length >= 5) throw new HttpError(429, 'Demasiadas solicitudes. Intente de nuevo más tarde.');
+    const body = await readJson(req, 10_000);
+    const catalogNumber = String(body.catalogNumber || '').slice(0, 20);
+    const email = String(body.email || '').trim();
+    const reason = String(body.reason || '').trim();
+    if (email.length > 150 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new HttpError(400, 'Indique un correo electrónico válido.');
+    if (reason.length < 5 || reason.length > 1000) throw new HttpError(400, 'Indique el motivo de la solicitud (entre 5 y 1000 caracteres).');
+    const specimen = db.prepare('SELECT image FROM specimens WHERE catalogNumber = ?').get(catalogNumber);
+    if (!specimen || !specimen.image) throw new HttpError(404, 'Este ejemplar no tiene imagen disponible.');
+    db.prepare('INSERT INTO image_requests (catalogNumber, email, reason) VALUES (?, ?, ?)').run(catalogNumber, email, reason);
+    recent.push(now);
+    imageRequestAttempts.set(ip, recent);
+    return json(res, 201, { ok: true });
+  }
+
+  if (route === '/api/imagen-acceso' && method === 'GET') {
+    const token = url.searchParams.get('token') || '';
+    const row = /^[a-f0-9]{64}$/.test(token)
+      ? db.prepare("SELECT r.catalogNumber, s.image FROM image_requests r JOIN specimens s ON s.catalogNumber = r.catalogNumber WHERE r.token = ? AND r.status = 'aprobada' AND r.expiresAt > ?").get(token, Date.now())
+      : null;
+    if (!row || !row.image) throw new HttpError(404, 'El enlace no es válido o ya venció.');
+    return json(res, 200, { catalogNumber: row.catalogNumber, image: `${row.image}?t=${token}` });
+  }
 
   if (route === '/api/login' && method === 'POST') {
     const wait = lockedFor(ip);
@@ -146,6 +176,25 @@ const handleApi = async (req, res, url) => {
     const name = `${crypto.randomBytes(12).toString('hex')}${ext}`;
     fs.writeFileSync(path.join(UPLOAD_DIR, name), body);
     return json(res, 201, { url: `/uploads/${name}` });
+  }
+
+  const requestMatch = route.match(/^\/api\/admin\/solicitudes(?:\/(\d+))?$/);
+  if (requestMatch) {
+    const id = requestMatch[1] ? Number(requestMatch[1]) : null;
+    if (!id && method === 'GET') return json(res, 200, db.prepare('SELECT id, catalogNumber, email, reason, status, token, expiresAt, createdAt, decidedAt FROM image_requests ORDER BY id DESC').all().map((r) => ({ ...r })));
+    if (id && method === 'PATCH') {
+      const { status } = await readJson(req, 1_000);
+      if (status !== 'aprobada' && status !== 'rechazada') throw new HttpError(400, 'Estado no válido.');
+      const token = status === 'aprobada' ? newToken() : null;
+      const expiresAt = status === 'aprobada' ? Date.now() + IMAGE_ACCESS_MS : null;
+      const r = db.prepare("UPDATE image_requests SET status = ?, token = ?, expiresAt = ?, decidedAt = CURRENT_TIMESTAMP WHERE id = ?").run(status, token, expiresAt, id);
+      if (!r.changes) throw new HttpError(404, 'Solicitud no encontrada.');
+      return json(res, 200, { ok: true });
+    }
+    if (id && method === 'DELETE') {
+      db.prepare('DELETE FROM image_requests WHERE id = ?').run(id);
+      return json(res, 200, { ok: true });
+    }
   }
 
   if (route === '/api/admin/users') {
@@ -254,7 +303,14 @@ const server = http.createServer(async (req, res) => {
     }
     if (url.pathname.startsWith('/uploads/')) {
       const file = safeJoin(UPLOAD_DIR, url.pathname.slice('/uploads/'.length));
-      return file ? serveFile(res, req, file) : send(res, 404, 'No encontrado');
+      if (!file) return send(res, 404, 'No encontrado');
+      const imageUrl = `/uploads/${path.basename(file)}`;
+      const specimenImage = db.prepare('SELECT catalogNumber FROM specimens WHERE image = ?').get(imageUrl);
+      const grantedToken = url.searchParams.get('t') || '';
+      const granted = specimenImage && /^[a-f0-9]{64}$/.test(grantedToken)
+        && db.prepare("SELECT 1 FROM image_requests WHERE token = ? AND status = 'aprobada' AND expiresAt > ? AND catalogNumber = ?").get(grantedToken, Date.now(), specimenImage.catalogNumber);
+      if (specimenImage && !granted && !currentUser(req)) return send(res, 401, 'No autorizado', { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
+      return serveFile(res, req, file, specimenImage ? { 'Cache-Control': 'private, no-store' } : {});
     }
     let rel = url.pathname === '/' ? '/index.html' : url.pathname;
     if (rel === '/admin') return send(res, 301, '', { Location: '/admin/' });

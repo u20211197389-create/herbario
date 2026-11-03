@@ -1,6 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="30 70 180 220" fill="none">
-  <path d="M120 250C60 238 36 180 44 90c34 22 58 62 76 160Z" fill="#3f7b2e" stroke="#2c5a20" stroke-width="3"/>
-  <path d="M120 250c60-12 84-70 76-160-34 22-58 62-76 160Z" fill="#3f7b2e" stroke="#2c5a20" stroke-width="3"/>
-  <path d="M120 250C92 190 70 140 52 96m68 154c28-60 50-110 68-154" stroke="#d9e6c8" stroke-width="4" stroke-linecap="round"/>
-  <text x="120" y="188" text-anchor="middle" font-family="Georgia, serif" font-size="90" fill="#111">S</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <path d="M8 7h48v30c0 13-9 20-24 22C17 57 8 50 8 37V7Z" fill="#fff" stroke="#53696f" stroke-width="2.4"/>
+  <path d="M13 12h15v25c0 2 2 4 4 4s4-2 4-4V12h15v25c0 10-7 16-19 18-12-2-19-8-19-18V12Z" fill="#971b20"/>
+  <text x="32" y="44" text-anchor="middle" font-family="Georgia,serif" font-size="31" font-weight="700" fill="#971b20" stroke="#fff" stroke-width="3" paint-order="stroke">S</text>
 </svg>

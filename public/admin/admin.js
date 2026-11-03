@@ -288,10 +288,39 @@ const renderUsers = async () => {
     el('br'), addForm, pwForm);
 };
 
+const renderRequests = async () => {
+  const rows = await api('GET', '/api/admin/solicitudes');
+  const decide = async (id, status) => {
+    try { await api('PATCH', `/api/admin/solicitudes/${id}`, { status }); toast(status === 'aprobada' ? 'Solicitud aprobada.' : 'Solicitud rechazada.'); renderRequests().catch(fail); } catch (e) { fail(e); }
+  };
+  const linkCell = (r) => {
+    if (r.status !== 'aprobada' || !r.token) return el('td', {}, '—');
+    const expired = r.expiresAt < Date.now();
+    const link = `${location.origin}/ejemplar/${encodeURIComponent(r.catalogNumber)}/?acceso=${r.token}`;
+    const input = el('input', { readOnly: true, value: link });
+    const copy = el('button', { class: 'btn small', type: 'button', onclick: async () => {
+      try { await navigator.clipboard.writeText(link); } catch { input.select(); document.execCommand('copy'); }
+      toast('Enlace copiado.');
+    } }, 'Copiar');
+    return el('td', {}, expired ? `Venció ${new Date(r.expiresAt).toLocaleDateString()}` : el('div', { class: 'row' }, input, copy));
+  };
+  const body = el('tbody', {}, ...rows.map((r) => el('tr', {}, el('td', {}, r.createdAt), el('td', {}, r.catalogNumber), el('td', {}, r.email), el('td', {}, r.reason),
+    el('td', {}, r.status), linkCell(r),
+    el('td', { class: 'actions' },
+      ...(r.status === 'pendiente' ? [el('button', { class: 'btn small', type: 'button', onclick: () => decide(r.id, 'aprobada') }, 'Aprobar'), el('button', { class: 'btn small danger', type: 'button', onclick: () => decide(r.id, 'rechazada') }, 'Rechazar')] : []),
+      el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
+        if (!confirm('¿Eliminar esta solicitud?')) return;
+        try { await api('DELETE', `/api/admin/solicitudes/${r.id}`); renderRequests().catch(fail); } catch (e) { fail(e); }
+      } }, 'Eliminar')))));
+  $('panel').replaceChildren(el('h2', {}, 'Solicitudes de imagen'),
+    el('p', {}, 'Al aprobar una solicitud se genera un enlace privado (válido 7 días). Cópielo y envíelo al correo del solicitante.'),
+    rows.length ? el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Fecha', 'Ejemplar', 'Correo', 'Motivo', 'Estado', 'Enlace', ''].map((h) => el('th', {}, h)))), body)) : el('p', {}, 'No hay solicitudes.'));
+};
+
 const TABS = [
   ['specimens', 'Especímenes', () => renderEntity('specimens')], ['publications', 'Publicaciones', () => renderEntity('publications')],
   ['library', 'Biblioteca', () => renderEntity('library')], ['members', 'Integrantes', () => renderEntity('members')],
-  ['about', 'Acerca', renderSettings('Acerca', 'Textos de la página «Acerca». Las personas se editan en la pestaña «Integrantes». Si un campo queda vacío, el sitio muestra «pendiente de definir».', ABOUT_FIELDS, () => el('p', {}, el('button', { class: 'btn', type: 'button', onclick: () => openTab('members') }, 'Editar, agregar o eliminar integrantes (personas)')))], ['contact', 'Contacto', renderSettings('Contacto', 'Datos de la página «Contacto». Si un campo queda vacío, el sitio muestra «pendiente de definir».', CONTACT_FIELDS)], ['cifras', 'Cifras', renderCifras], ['users', 'Usuarios', renderUsers],
+  ['about', 'Acerca', renderSettings('Acerca', 'Textos de la página «Acerca». Las personas se editan en la pestaña «Integrantes». Si un campo queda vacío, el sitio muestra «pendiente de definir».', ABOUT_FIELDS, () => el('p', {}, el('button', { class: 'btn', type: 'button', onclick: () => openTab('members') }, 'Editar, agregar o eliminar integrantes (personas)')))], ['contact', 'Contacto', renderSettings('Contacto', 'Datos de la página «Contacto». Si un campo queda vacío, el sitio muestra «pendiente de definir».', CONTACT_FIELDS)], ['requests', 'Solicitudes', renderRequests], ['cifras', 'Cifras', renderCifras], ['users', 'Usuarios', renderUsers],
 ];
 
 const openTab = (id) => {

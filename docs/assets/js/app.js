@@ -190,9 +190,89 @@ const zoomViewer = (src, alt) => {
   return box;
 };
 
+const requestDialog = document.getElementById('request-dialog');
+const requestForm = document.getElementById('request-form');
+const requestMsg = document.getElementById('request-msg');
+let requestCatalog = '';
+
+const setRequestMsg = (text, ok) => {
+  requestMsg.textContent = text;
+  requestMsg.classList.toggle('ok', Boolean(ok));
+  requestMsg.hidden = !text;
+};
+
+const openRequestDialog = (specimen) => {
+  requestCatalog = specimen.catalogNumber;
+  requestForm.reset();
+  setRequestMsg('');
+  document.getElementById('request-send').disabled = false;
+  requestDialog.showModal();
+};
+
+document.getElementById('request-cancel').addEventListener('click', () => requestDialog.close());
+document.getElementById('request-x').addEventListener('click', () => requestDialog.close());
+
+requestForm.addEventListener('submit', async (event) => {
+  event.preventDefault();
+  const email = document.getElementById('request-email').value.trim();
+  const reason = document.getElementById('request-reason').value.trim();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setRequestMsg('Escriba un correo electrónico válido.');
+  if (reason.length < 5) return setRequestMsg('Cuéntenos brevemente el motivo de la solicitud.');
+  if (window.SITE_STATIC) {
+    const body = `Ejemplar: ${requestCatalog}\nCorreo: ${email}\nMotivo: ${reason}`;
+    window.location.href = `mailto:herbario@usco.edu.co?subject=${encodeURIComponent('Solicitud de imagen ' + requestCatalog)}&body=${encodeURIComponent(body)}`;
+    return setRequestMsg('Se abrió su programa de correo para enviar la solicitud.', true);
+  }
+  const send = document.getElementById('request-send');
+  send.disabled = true;
+  try {
+    const response = await fetch('/api/solicitudes-imagen', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'herbario' },
+      body: JSON.stringify({ catalogNumber: requestCatalog, email, reason })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || 'No se pudo enviar la solicitud.');
+    setRequestMsg('Solicitud enviada. El herbario le responderá a su correo.', true);
+  } catch (error) {
+    setRequestMsg(error.message);
+    send.disabled = false;
+  }
+});
+
+const lockedImage = (specimen, className, message) => {
+  const box = createElement('div', `${className} image-locked`);
+  box.append(createElement('p', '', message || 'Imagen disponible bajo solicitud'));
+  const button = createElement('button', 'btn-request', 'Solicitar ver imagen');
+  button.type = 'button';
+  button.addEventListener('click', () => openRequestDialog(specimen));
+  box.append(button);
+  return box;
+};
+
 const specimenPicture = (specimen, className, size) => {
-  if (!specimen.image) return createElement('div', className, 'Sin imagen');
+  if (!specimen.image && !specimen.hasImage) return createElement('div', className, 'Sin imagen');
   const alt = `Fotografía del ejemplar ${catalogLabel(specimen)}`;
+  if (!specimen.image) {
+    if (size !== 'detail') return createElement('div', className, 'Imagen bajo solicitud');
+    const holder = createElement('div', 'detail-image-holder');
+    const token = new URLSearchParams(window.location.search).get('acceso');
+    if (!token || window.SITE_STATIC) {
+      holder.append(lockedImage(specimen, className));
+      return holder;
+    }
+    holder.append(createElement('div', className, 'Verificando acceso…'));
+    fetch(`/api/imagen-acceso?token=${encodeURIComponent(token)}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject()))
+      .then((data) => {
+        if (data.catalogNumber !== specimen.catalogNumber) return Promise.reject();
+        const wrap = createElement('div', `${className} has-image has-zoom`);
+        wrap.append(zoomViewer(data.image, alt));
+        holder.replaceChildren(wrap);
+      })
+      .catch(() => holder.replaceChildren(lockedImage(specimen, className, 'El enlace no es válido o ya venció. Puede solicitar el acceso de nuevo.')));
+    return holder;
+  }
   if (size === 'detail') {
     const wrap = createElement('div', `${className} has-image has-zoom`);
     wrap.append(zoomViewer(specimen.image, alt));

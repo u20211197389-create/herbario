@@ -60,6 +60,10 @@ CREATE TABLE IF NOT EXISTS specimens (${columns(ENTITIES.specimens).join(', ').r
 CREATE TABLE IF NOT EXISTS publications (id INTEGER PRIMARY KEY AUTOINCREMENT, ${columns(ENTITIES.publications).join(', ')});
 CREATE TABLE IF NOT EXISTS library_items (id INTEGER PRIMARY KEY AUTOINCREMENT, ${columns(ENTITIES.library).join(', ')});
 CREATE TABLE IF NOT EXISTS members (id INTEGER PRIMARY KEY AUTOINCREMENT, ${columns(ENTITIES.members).join(', ')});
+CREATE TABLE IF NOT EXISTS image_requests (
+  id INTEGER PRIMARY KEY AUTOINCREMENT, catalogNumber TEXT NOT NULL, email TEXT NOT NULL, reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pendiente', token TEXT, expiresAt INTEGER,
+  createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, decidedAt TEXT);
 `);
 
 // Migración: bases creadas antes de existir ciertas columnas.
@@ -171,7 +175,7 @@ export const saveSettings = (input) => {
 
 // Datos públicos en el formato que espera app.js.
 export const publicData = () => {
-  const specimens = list('specimens').map((s) => ({ ...s, isType: Boolean(s.isType) }));
+  const specimens = list('specimens').map(({ image, ...s }) => ({ ...s, hasImage: Boolean(image), isType: Boolean(s.isType) }));
   const libraryItems = list('library').map(({ id, contributors, subjects, ...r }) => ({
     ...r,
     contributors: contributors ? contributors.split(',').map((x) => x.trim()).filter(Boolean) : [],
