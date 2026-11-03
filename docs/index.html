@@ -312,6 +312,32 @@
         </div>
       </div>
     </section>
+    <section class="panel view library-detail" data-view="biblioteca-detalle" id="biblioteca-detalle" aria-labelledby="libd-title">
+      <nav class="libd-nav" aria-label="Navegación entre registros">
+        <a class="link-btn" id="libd-back" href="#biblioteca">← Volver a los resultados</a>
+        <span id="libd-pos"></span>
+        <span class="libd-steps"><button type="button" class="link-btn" id="libd-prev">‹ Anterior</button> <button type="button" class="link-btn" id="libd-next">Siguiente ›</button></span>
+      </nav>
+      <div class="libd-head">
+        <div>
+          <small id="libd-kind"></small>
+          <h2 class="page-title" id="libd-title"></h2>
+          <div id="libd-summary"></div>
+        </div>
+        <div class="lib-cover libd-cover" aria-hidden="true">📖</div>
+      </div>
+      <h3>Disponibilidad y ubicaciones</h3>
+      <div class="table-scroll">
+        <table class="pub-table">
+          <thead><tr><th>Estado</th><th>Ubicación</th><th>Disponible</th></tr></thead>
+          <tbody id="libd-avail"></tbody>
+        </table>
+      </div>
+      <h3>Detalles de la publicación</h3>
+      <dl class="libd-details" id="libd-details"></dl>
+      <h3>Buscar en este estante</h3>
+      <ul class="libd-shelf" id="libd-shelf"></ul>
+    </section>
     <section class="panel view" data-view="publicaciones" id="publicaciones" aria-labelledby="publications-title">
       <h2 class="page-title" id="publications-title">Publicaciones</h2>
       <p>El Herbario SURCO promueve la producción de publicaciones científicas que difundan los resultados de sus investigaciones botánicas. Las publicaciones fortalecen la formación académica y el conocimiento sobre la flora del Huila y de Colombia.<br>*En caso de requerir alguna de las publicaciones comunicarse al correo <a href="mailto:herbario@usco.edu.co">herbario@usco.edu.co</a></p>

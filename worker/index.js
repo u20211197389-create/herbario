@@ -137,7 +137,7 @@ const publicData = async (env) => {
   const split = (v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean) : []);
   return {
     specimens: specs.map(({ image, ...s }) => ({ ...s, hasImage: Boolean(image), isType: Boolean(s.isType) })),
-    libraryItems: lib.map(({ id, contributors, subjects, ...r }) => ({ ...r, contributors: split(contributors), subjects: split(subjects) })),
+    libraryItems: lib.map(({ contributors, subjects, ...r }) => ({ ...r, contributors: split(contributors), subjects: split(subjects) })),
     publications: publications.map(({ id, ...r }) => r),
     siteMembers: members.map(({ id, position, ...r }) => r),
     siteSettings,

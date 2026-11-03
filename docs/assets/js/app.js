@@ -530,7 +530,13 @@ const showView = () => {
   const hash = currentRoute();
   let current = hash;
   let detailSpecimen = null;
+  let detailBook = null;
 
+  if (hash.startsWith('biblioteca/')) {
+    current = 'biblioteca-detalle';
+    detailBook = libraryItems.find((book) => String(book.id) === hash.slice('biblioteca/'.length));
+    if (!detailBook) current = 'biblioteca';
+  }
   if (hash.startsWith('ejemplar/')) {
     current = 'ejemplar';
     detailSpecimen = herbariumSpecimens.find((specimen) => specimen.catalogNumber === hash.slice('ejemplar/'.length));
@@ -539,8 +545,9 @@ const showView = () => {
   if (![...views].some((view) => view.dataset.view === current)) current = 'inicio';
 
   if (detailSpecimen) renderDetail(detailSpecimen);
+  if (detailBook) renderBookDetail(detailBook);
   views.forEach((view) => { view.hidden = view.dataset.view !== current; });
-  const activeMenu = current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' ? 'servicios' : current;
+  const activeMenu = current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' ? 'servicios' : current;
   menuLinks.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === toPath(activeMenu)));
   window.scrollTo(0, 0);
 };
@@ -803,6 +810,77 @@ const libFiltered = () => {
   ));
 };
 
+const bookPath = (item) => toPath(`biblioteca/${item.id}`);
+
+// La vista de detalle usa la misma búsqueda/filtros activos para el "Anterior/Siguiente".
+const renderBookDetail = (item) => {
+  const set = (id, ...nodes) => document.getElementById(id).replaceChildren(...nodes);
+  const text = (tag, value, className) => { const n = document.createElement(tag); n.textContent = value; if (className) n.className = className; return n; };
+  const joined = (value) => [].concat(value ?? []).join(', ');
+
+  set('libd-kind', item.format || 'Libro');
+  set('libd-title', item.title);
+
+  const summary = [];
+  const add = (label, value) => {
+    if (!value || (Array.isArray(value) && !value.length)) return;
+    const p = document.createElement('p');
+    p.append(text('strong', `${label}: `), joined(value));
+    summary.push(p);
+  };
+  add('Por', item.author);
+  add('Colaboradores', item.contributors);
+  add('Publicado', [item.publisher, item.year].filter(Boolean).join(', '));
+  add('Edición', item.edition);
+  set('libd-summary', ...summary);
+
+  const row = document.createElement('tr');
+  [item.status || '—', item.location || '—', item.available || '—'].forEach((v) => row.append(text('td', v)));
+  set('libd-avail', row);
+
+  const details = [];
+  const detail = (label, value) => {
+    if (!value || (Array.isArray(value) && !value.length)) return;
+    details.push(text('dt', label), text('dd', joined(value)));
+  };
+  detail('Idioma', item.language);
+  detail('Editor', item.publisher);
+  detail('Año de publicación', item.year);
+  detail('Edición', item.edition);
+  detail('Temas', item.subjects);
+  detail('Tipo de documento', item.format || 'Libro');
+  detail('Ubicación', item.location);
+  set('libd-details', ...details);
+
+  const results = libFiltered();
+  const at = results.findIndex((book) => book.id === item.id);
+  const step = (offset) => results[at + offset];
+  const go = (book) => { if (book) navigate(bookPath(book)); };
+  document.getElementById('libd-pos').textContent = at >= 0 ? `${at + 1} de ${results.length}` : '';
+  const prev = document.getElementById('libd-prev');
+  const next = document.getElementById('libd-next');
+  prev.disabled = at <= 0;
+  next.disabled = at < 0 || at >= results.length - 1;
+  prev.onclick = () => go(step(-1));
+  next.onclick = () => go(step(1));
+
+  // Estante: otros registros que comparten la primera materia (o el mismo formato si no tiene).
+  const topic = (item.subjects || [])[0];
+  const related = libraryItems
+    .filter((book) => book.id !== item.id && (topic ? (book.subjects || []).includes(topic) : book.format === item.format))
+    .slice(0, 5);
+  set('libd-shelf', ...related.map((book) => {
+    const li = document.createElement('li');
+    const a = document.createElement('a');
+    a.href = bookPath(book);
+    const cover = text('div', '📖', 'lib-cover');
+    const author = text('small', book.author || book.publisher || '');
+    a.append(cover, text('small', book.format || 'Libro'), text('strong', book.title.length > 60 ? `${book.title.slice(0, 57)}…` : book.title), author);
+    li.append(a);
+    return li;
+  }));
+};
+
 const renderLibrary = () => {
   const results = libFiltered();
   const count = document.getElementById('lib-count');
@@ -824,8 +902,10 @@ const renderLibrary = () => {
   results.forEach((item, index) => {
     const li = document.createElement('li');
     li.className = 'lib-item';
-    const icon = document.createElement('div');
-    icon.className = 'lib-cover';
+    const icon = document.createElement('a');
+    icon.className = 'lib-cover lib-cover-link';
+    icon.href = bookPath(item);
+    icon.setAttribute('aria-label', `Ver ${item.title}`);
     icon.textContent = '📖';
     const body = document.createElement('div');
     const line = (label, value) => {
@@ -839,7 +919,10 @@ const renderLibrary = () => {
     const kind = document.createElement('small');
     kind.textContent = item.format || 'Libro';
     const title = document.createElement('h3');
-    title.textContent = item.title;
+    const titleLink = document.createElement('a');
+    titleLink.href = bookPath(item);
+    titleLink.textContent = item.title;
+    title.append(titleLink);
     body.append(kind, title);
     line('Por', item.author);
     line('Colaboradores', item.contributors);
