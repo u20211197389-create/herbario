@@ -243,7 +243,7 @@ const ABOUT_FIELDS = [
   ['founderPhoto', 'Fundador (foto)', 'image'], ['history', 'Reseña histórica', 'area'], ['terms', 'Términos de uso', 'area'],
 ];
 const CONTACT_FIELDS = [
-  ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'], ['instagram', 'Instagram (@usuario o enlace)', 'text'],
+  ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'],
 ];
 
 // Cada formulario guarda solo sus propios campos; el servidor no toca los demás.

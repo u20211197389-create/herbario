@@ -593,7 +593,7 @@ main { padding-bottom: 40px; }
 .panel.about h3, .panel.about h3.with-rule { font-size: 22px; font-weight: 700; border-top: 0; padding-top: 0; margin-top: 34px; }
 .panel.about p, .panel p { text-align: left; }
 .panel .pending, .panel.about .pending { padding: 14px 18px; border-radius: 12px; background: #fbf6ec; border: 1px dashed #e3c987; color: #7a6a3c; font-style: normal; }
-.panel .pending[data-setting="phone"], .panel .pending[data-setting="instagram"] { padding: 0; border: 0; background: none; }
+.panel .pending[data-setting="phone"] { padding: 0; border: 0; background: none; }
 
 .panel ul:not([class]), .panel ol:not([class]) { padding-left: 22px; line-height: 1.8; }
 .panel.about > ul:first-of-type, .panel.about h3 + ul {
