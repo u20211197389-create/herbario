@@ -113,7 +113,9 @@ const editorForm = $('editor-form');
 
 const imageField = (field, value) => {
   const input = el('input', { name: field.name, value: value || '', maxLength: 500, placeholder: '/uploads/… o https://…' });
-  const preview = el('img', { alt: '', hidden: !value, src: value || '' });
+  const preview = el('img', { class: 'image-preview', alt: 'Vista previa de la imagen', hidden: !value, src: value || '' });
+  input.addEventListener('change', () => { preview.src = input.value; preview.hidden = !input.value; });
+  preview.addEventListener('click', () => window.open(preview.src, '_blank', 'noopener'));
   const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', onchange: async () => {
     const f = file.files[0];
     if (!f) return;
@@ -122,7 +124,7 @@ const imageField = (field, value) => {
       input.value = url; preview.src = url; preview.hidden = false;
     } catch (e) { fail(e); }
   } });
-  return el('div', { class: 'wide' }, el('label', {}, field.label, el('div', { class: 'upload' }, input, preview)), file);
+  return el('div', { class: 'wide image-field' }, el('label', {}, field.label, input), file, preview);
 };
 
 const openForm = (section, record, onSaved) => {
