@@ -91,6 +91,10 @@ const seed = () => {
     const list = vm.runInContext(`${fs.readFileSync(seedFile, 'utf8')}\nherbariumSpecimens`, ctx);
     for (const s of list) insert('specimens', s);
   }
+  if (!db.prepare('SELECT 1 FROM library_items LIMIT 1').get()) {
+    const libFile = path.join(ROOT, 'server', 'seed', 'library.seed.json');
+    if (fs.existsSync(libFile)) for (const item of JSON.parse(fs.readFileSync(libFile, 'utf8'))) insert('library', item);
+  }
   if (!db.prepare('SELECT 1 FROM members LIMIT 1').get()) {
     DEFAULT_MEMBERS.forEach(([role, name, functionText], i) => insert('members', { role, name, functionText, position: i + 1 }));
   }

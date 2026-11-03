@@ -65,9 +65,23 @@ Los datos se guardan en SQLite. El esquema PostgreSQL y el script de Director de
 - La plantilla no trae el identificador de institución que exige la tabla SQL, y las coordenadas decimales están fuera de rango; no se inventaron esos datos.
 - No hay datos de altura, nombre común ni ejemplares tipo; se pueden completar desde el panel.
 - Los textos institucionales (misión, historia, fundador, tarifas) siguen pendientes hasta que se escriban en el panel (las tarifas aún están fijas en `index.html`).
-## Publicar la parte p�blica en l�nea (GitHub Pages)
+## Publicar el servidor en línea (Render)
 
-1. `npm run publicar` genera `docs/` con el sitio est�tico (sin administraci�n).
+Necesario para que el panel de administración y los enlaces de los correos funcionen desde cualquier lugar. El repositorio incluye `render.yaml`.
+
+1. Cree una cuenta en https://render.com e inicie sesión con GitHub.
+2. **New → Blueprint**, elija el repositorio `herbario` y confirme. Se crea el servicio `herbario-surco` con un disco persistente de 1 GB en `/var/data` (plan Starter, de pago; el plan gratuito borra la base de datos en cada reinicio).
+3. Complete las variables que pide Render:
+   - `ADMIN_USER` y `ADMIN_PASSWORD`: administrador inicial (contraseña de 10+ caracteres con letras y números). Solo se usan si aún no hay usuarios.
+   - `SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM`: cuenta de correo para responder solicitudes.
+   - `PUBLIC_URL`: dirección que Render asigna (por ejemplo `https://herbario-surco.onrender.com`).
+4. Entre a `<dirección>/admin/`.
+
+Al primer arranque se cargan los 8 especímenes de ejemplo y los 691 libros de la biblioteca (`server/seed/`). Las imágenes subidas y demás cambios hechos en su computador no se copian; vuelva a cargarlos desde el panel.
+
+## Publicar la parte p�blica en l�nea (GitHub Pages)
+
+1. `npm run publicar` genera `docs/` con el sitio est�tico (sin administraci�n).
 2. `git add -A`, `git commit -m "Publicar sitio"` y `git push`.
 3. En GitHub: Settings ? Pages ? Branch `main` y carpeta `/docs`.
 

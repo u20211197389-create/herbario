@@ -109,12 +109,22 @@ const buildDecisionMail = ({ kind, email, catalogNumber }, status, token, origin
 };
 
 const imageRequestAttempts = new Map();
+
+// En hosting sin terminal, el primer administrador se crea con ADMIN_USER y ADMIN_PASSWORD (solo si no hay usuarios).
+if (!db.prepare('SELECT 1 FROM users LIMIT 1').get() && process.env.ADMIN_USER && process.env.ADMIN_PASSWORD) {
+  const problem = passwordProblem(process.env.ADMIN_PASSWORD);
+  if (problem || !/^[\w.@-]{3,60}$/.test(process.env.ADMIN_USER)) console.error('ADMIN_USER/ADMIN_PASSWORD no válidos:', problem || 'usuario no válido');
+  else {
+    db.prepare('INSERT INTO users (username, passwordHash) VALUES (?, ?)').run(process.env.ADMIN_USER, hashPassword(process.env.ADMIN_PASSWORD));
+    console.log(`Administrador "${process.env.ADMIN_USER}" creado.`);
+  }
+}
 const IMAGE_ACCESS_MS = 7 * 24 * 60 * 60 * 1000;
 
 const handleApi = async (req, res, url) => {
   const method = req.method;
   const route = url.pathname;
-  const ip = req.socket.remoteAddress || 'x';
+  const ip = (SECURE && String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket.remoteAddress || 'x';
 
   if (method !== 'GET' && method !== 'HEAD' && !req.headers['x-requested-with']) throw new HttpError(403, 'Solicitud no permitida.');
 
@@ -212,7 +222,7 @@ const handleApi = async (req, res, url) => {
       const r = db.prepare("UPDATE image_requests SET status = ?, token = ?, expiresAt = ?, decidedAt = CURRENT_TIMESTAMP WHERE id = ?").run(status, token, expiresAt, id);
       if (!r.changes) throw new HttpError(404, 'Solicitud no encontrada.');
 
-      const origin = (process.env.PUBLIC_URL || `http://${req.headers.host || `${HOST}:${PORT}`}`).replace(/\/+$/, '');
+      const origin = (process.env.PUBLIC_URL || `${SECURE ? 'https' : 'http'}://${req.headers.host || `${HOST}:${PORT}`}`).replace(/\/+$/, '');
       const mail = buildDecisionMail(kindRow, status, token, origin);
       let mailSent = false;
       let mailError = '';
@@ -360,5 +370,5 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-server.listen(PORT, HOST, () => console.log(`Herbario SURCO en http://${HOST}:${PORT}  (administraciÃ³n: /admin/)`));
+server.listen(PORT, HOST, () => console.log(`Herbario SURCO en http://${HOST}:${PORT}  (administración: /admin/)`));
 
