@@ -544,3 +544,10 @@ input:focus-visible {
 .download-dialog .request-field select:focus { outline: none; border-color: var(--maroon); }
 .download-dialog .dialog-footer { margin: 0; padding: 18px 24px; }
 .download-dialog .request-head { margin: 0; }
+
+/* Sugerencias de búsqueda */
+.search { position: relative; }
+.suggestions { position: absolute; top: 100%; left: 0; right: 72px; z-index: 30; margin: 0; padding: 0; max-height: 330px; overflow-y: auto; list-style: none; background: #fff; border: 1px solid var(--line); border-top: 0; border-radius: 0 0 6px 6px; box-shadow: 0 14px 28px -10px rgba(0, 0, 0, .3); }
+.suggestions li { padding: 14px 20px; border-bottom: 1px solid #ececec; color: #555; font-size: 18px; cursor: pointer; }
+.suggestions li:last-child { border-bottom: 0; }
+.suggestions li:hover, .suggestions li.is-active { background: #f6eeee; color: var(--maroon); }

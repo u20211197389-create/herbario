@@ -611,7 +611,65 @@ navigation.addEventListener('click', (event) => {
 
 catalogSearch.addEventListener('submit', (event) => {
   event.preventDefault();
+  hideSuggestions();
   quickSearch();
+});
+
+const suggestionList = createElement('ul', 'suggestions');
+suggestionList.id = 'catalog-suggestions';
+suggestionList.setAttribute('role', 'listbox');
+suggestionList.hidden = true;
+catalogSearch.append(suggestionList);
+catalogQuery.setAttribute('aria-controls', 'catalog-suggestions');
+let suggestionIndex = -1;
+
+const suggestionTerms = [...new Set(herbariumSpecimens.flatMap((s) => [s.scientificName, s.genus, s.family, s.commonName]).filter(Boolean))]
+  .sort((a, b) => a.localeCompare(b, 'es'));
+
+function hideSuggestions() {
+  suggestionList.hidden = true;
+  suggestionIndex = -1;
+}
+
+const highlightSuggestion = (index) => {
+  const items = [...suggestionList.children];
+  items.forEach((item, i) => item.classList.toggle('is-active', i === index));
+  suggestionIndex = index;
+  items[index]?.scrollIntoView({ block: 'nearest' });
+};
+
+const chooseSuggestion = (term) => {
+  catalogQuery.value = term;
+  hideSuggestions();
+  quickSearch();
+};
+
+const showSuggestions = () => {
+  const query = normalize(catalogQuery.value.trim());
+  if (!query) return hideSuggestions();
+  const starts = suggestionTerms.filter((t) => normalize(t).startsWith(query));
+  const inside = suggestionTerms.filter((t) => !normalize(t).startsWith(query) && normalize(t).includes(query));
+  const found = [...starts, ...inside].slice(0, 30);
+  suggestionList.replaceChildren(...found.map((term) => {
+    const item = createElement('li', '', term);
+    item.setAttribute('role', 'option');
+    item.addEventListener('mousedown', (event) => { event.preventDefault(); chooseSuggestion(term); });
+    return item;
+  }));
+  suggestionIndex = -1;
+  suggestionList.hidden = !found.length;
+};
+
+catalogQuery.addEventListener('input', showSuggestions);
+catalogQuery.addEventListener('focus', showSuggestions);
+catalogQuery.addEventListener('blur', hideSuggestions);
+catalogQuery.addEventListener('keydown', (event) => {
+  if (suggestionList.hidden) return;
+  const count = suggestionList.children.length;
+  if (event.key === 'ArrowDown') { event.preventDefault(); highlightSuggestion((suggestionIndex + 1) % count); }
+  else if (event.key === 'ArrowUp') { event.preventDefault(); highlightSuggestion((suggestionIndex - 1 + count) % count); }
+  else if (event.key === 'Enter' && suggestionIndex >= 0) { event.preventDefault(); chooseSuggestion(suggestionList.children[suggestionIndex].textContent); }
+  else if (event.key === 'Escape') hideSuggestions();
 });
 
 advancedForm.addEventListener('submit', (event) => {
