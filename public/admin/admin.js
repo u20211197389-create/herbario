@@ -288,8 +288,11 @@ const renderUsers = async () => {
     el('br'), addForm, pwForm);
 };
 
+let requestFilter = 'todas';
 const renderRequests = async () => {
-  const rows = await api('GET', '/api/admin/solicitudes');
+  const all = await api('GET', '/api/admin/solicitudes');
+  const rows = requestFilter === 'todas' ? all : all.filter((r) => r.kind === requestFilter);
+  const pending = all.filter((r) => r.status === 'pendiente').length;
   const decide = async (id, status) => {
     try { await api('PATCH', `/api/admin/solicitudes/${id}`, { status }); toast(status === 'aprobada' ? 'Solicitud aprobada.' : 'Solicitud rechazada.'); renderRequests().catch(fail); } catch (e) { fail(e); }
   };
@@ -312,7 +315,11 @@ const renderRequests = async () => {
         if (!confirm('¿Eliminar esta solicitud?')) return;
         try { await api('DELETE', `/api/admin/solicitudes/${r.id}`); renderRequests().catch(fail); } catch (e) { fail(e); }
       } }, 'Eliminar')))));
-  $('panel').replaceChildren(el('h2', {},   'Solicitudes de imagen y descarga'),
+  $('panel').replaceChildren(el('h2', {}, 'Solicitudes de imagen y descarga'),
+    el('div', { class: 'row' },
+      el('label', {}, 'Mostrar ', el('select', { onchange: (ev) => { requestFilter = ev.target.value; renderRequests().catch(fail); } },
+        ...[['todas', 'Todas'], ['descarga', 'Solicitudes de descarga'], ['imagen', 'Solicitudes de imagen']].map(([v, l]) => el('option', { value: v, selected: v === requestFilter }, l)))),
+      el('strong', {}, `Pendientes: ${pending} · Total: ${all.length}`)),
       el('p', {}, 'Imagen: al aprobar se genera un enlace privado (válido 7 días) que debe copiar y enviar al correo del solicitante. Descarga: al aprobar, envíe usted el archivo al correo indicado.'),
     rows.length ? el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Fecha', 'Ejemplar', 'Correo', 'Motivo', 'Estado', 'Enlace', ''].map((h) => el('th', {}, h)))), body)) : el('p', {}, 'No hay solicitudes.'));
 };
