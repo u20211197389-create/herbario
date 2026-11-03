@@ -154,3 +154,10 @@ dialog::backdrop { background:rgba(20,20,30,.5); backdrop-filter:blur(2px); }
 .avatar.xl{width:84px;height:84px;font-size:2rem;flex:none}
 .profile-photo{display:flex;gap:16px;align-items:center;margin-bottom:12px}
 .profile-photo small{display:block;color:#777;margin-top:6px}
+
+/* Títulos elegantes (igual que el sitio público) */
+.login-card h1, .panel h2, .panel h3, #editor h2, #editor h3 { font-family: Georgia, "Times New Roman", serif; font-weight: 600; }
+.login-card h1 { font-size: 1.8rem; }
+.panel h2 { font-size: 1.9rem; color: var(--maroon); letter-spacing: .005em; }
+.panel h2::after { width: 56px; height: 2px; border-radius: 2px; }
+.bar strong { font-family: Georgia, "Times New Roman", serif; font-weight: 600; letter-spacing: .01em; }
