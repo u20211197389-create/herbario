@@ -482,7 +482,13 @@ const downloadXlsx = (list) => {
   URL.revokeObjectURL(link.href);
 };
 
-const VIEW_PATHS = ['especimenes', 'busqueda-avanzada', 'acerca', 'cifras', 'servicios', 'biblioteca', 'publicaciones', 'contacto'];
+const nomenQuery = document.querySelector('#nomen-query');
+nomenQuery?.addEventListener('input', () => {
+  const term = nomenQuery.value.trim().toLowerCase();
+  document.querySelectorAll('#nomen-table tbody tr').forEach((row) => { row.hidden = !!term && !row.textContent.toLowerCase().includes(term); });
+});
+
+const VIEW_PATHS = ['especimenes', 'busqueda-avanzada', 'acerca', 'coleccion', 'cifras', 'servicios', 'biblioteca', 'publicaciones', 'contacto'];
 // Con publicación estática en un subdirectorio (p. ej. GitHub Pages), data.js define SITE_BASE.
 const BASE = window.SITE_BASE || '';
 const toPath = (route) => (route === 'inicio' ? `${BASE}/` : `${BASE}/${route}/`);
