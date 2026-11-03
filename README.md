@@ -19,6 +19,7 @@ npm.cmd run dev
 
 - Sitio público: `http://127.0.0.1:5173`
 - Administración: `http://127.0.0.1:5173/admin/` (no hay enlace en el sitio público; se entra escribiendo la dirección).
+- **Administración en línea (no requiere tener el equipo local encendido):** https://herbario-surco.herbariosurco.workers.dev/admin/ (ver la sección "Servidor en línea gratis").
 
 Variables opcionales: `PORT`, `HOST` (por defecto `127.0.0.1`), `HERBARIO_DATA` (carpeta de datos), `HERBARIO_DB` (archivo de la base) y `HERBARIO_SECURE=1` si se publica con HTTPS.
 
