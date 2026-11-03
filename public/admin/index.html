@@ -6,8 +6,8 @@
   <meta name="robots" content="noindex, nofollow">
   <title>Administración · Herbario SURCO</title>
   <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg?v=5">
-  <link rel="stylesheet" href="admin.css?v=4">
-  <script src="admin.js?v=4" defer></script>
+  <link rel="stylesheet" href="admin.css?v=5">
+  <script src="admin.js?v=5" defer></script>
 </head>
 <body>
   <main id="login-view" class="login" hidden>
@@ -26,9 +26,18 @@
     <header class="bar">
       <strong>Administración · Herbario SURCO</strong>
       <span class="spacer"></span>
-      <a href="/" target="_blank" rel="noopener">Ver sitio</a>
-      <span id="who"></span>
-      <button id="logout" class="btn ghost" type="button">Salir</button>
+      <div class="usermenu">
+        <button id="user-btn" class="user-btn" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Menú de usuario">
+          <span id="avatar" class="avatar">A</span>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <div id="user-pop" class="user-pop" hidden>
+          <div class="user-head"><span class="avatar big" id="avatar2">A</span><div><strong id="who"></strong><small>Administrador</small></div></div>
+          <a href="/" target="_blank" rel="noopener">Ver sitio</a>
+          <button id="menu-pass" type="button">Cambiar contraseña</button>
+          <button id="logout" type="button" class="danger">Cerrar sesión</button>
+        </div>
+      </div>
     </header>
     <nav id="tabs" class="tabs" aria-label="Secciones"></nav>
     <section id="panel" class="panel"></section>

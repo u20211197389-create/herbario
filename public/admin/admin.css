@@ -136,3 +136,16 @@ dialog::backdrop { background:rgba(20,20,30,.5); backdrop-filter:blur(2px); }
 .pass-wrap{position:relative;display:block}.pass-wrap input{width:100%;padding-right:2.6rem;box-sizing:border-box}.pass-toggle{position:absolute;right:.4rem;top:50%;transform:translateY(-50%);border:0;background:none;cursor:pointer;font-size:1.1rem;opacity:.55;padding:.2rem .4rem}.pass-toggle.on{opacity:1}.pass-toggle:hover{opacity:1}
 
 .pass-toggle[hidden]{display:none}.pass-toggle{display:flex;align-items:center;opacity:.7;color:#333}.pass-toggle.on{opacity:.7}
+
+.usermenu{position:relative}
+.user-btn{display:flex;align-items:center;gap:4px;background:rgba(255,255,255,.12);border:0;color:#fff;border-radius:999px;padding:3px 8px 3px 3px;cursor:pointer}
+.user-btn:hover{background:rgba(255,255,255,.24)}
+.avatar{width:34px;height:34px;border-radius:50%;background:#e8c36a;color:#5a0f0f;font-weight:700;display:inline-flex;align-items:center;justify-content:center}
+.avatar.big{width:42px;height:42px;font-size:1.1rem}
+.user-pop{position:absolute;right:0;top:calc(100% + 8px);min-width:230px;background:#fff;color:#222;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,.25);padding:6px;z-index:50}
+.user-pop[hidden]{display:none}
+.user-head{display:flex;gap:10px;align-items:center;padding:10px;border-bottom:1px solid #eee;margin-bottom:4px}
+.user-head strong{display:block;color:#222}.user-head small{color:#777}
+.user-pop a,.user-pop button{display:block;width:100%;text-align:left;background:none;border:0;padding:10px 12px;border-radius:8px;color:#222!important;font:inherit;cursor:pointer;text-decoration:none;opacity:1}
+.user-pop a:hover,.user-pop button:hover{background:#f3eaea}
+.user-pop .danger{color:#a11!important}

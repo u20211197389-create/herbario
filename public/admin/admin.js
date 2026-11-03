@@ -370,6 +370,7 @@ const openTab = (id) => {
 const showLogin = () => { $('app-view').hidden = true; $('login-view').hidden = false; $('login-pass').value = ''; };
 const showApp = (username) => {
   $('login-view').hidden = true; $('app-view').hidden = false; $('who').textContent = username;
+  const ini = (username || '?').charAt(0).toUpperCase(); $('avatar').textContent = ini; $('avatar2').textContent = ini;
   $('tabs').replaceChildren(...TABS.map(([id, label]) => el('button', { type: 'button', textContent: label, onclick: () => openTab(id) }, )));
   $('tabs').querySelectorAll('button').forEach((b, i) => { b.dataset.tab = TABS[i][0]; });
   openTab(sessionStorage.getItem('adminTab'));
@@ -383,7 +384,12 @@ $('login-form').addEventListener('submit', async (ev) => {
     showApp((await api('GET', '/api/me')).username);
   } catch (e) { $('login-error').textContent = e.message; }
 });
-$('logout').addEventListener('click', async () => { try { await api('POST', '/api/logout'); } catch { /* sesión ya cerrada */ } showLogin(); });
+const closeUserMenu = () => { $('user-pop').hidden = true; $('user-btn').setAttribute('aria-expanded', 'false'); };
+$('user-btn').addEventListener('click', (e) => { e.stopPropagation(); const open = $('user-pop').hidden; $('user-pop').hidden = !open; $('user-btn').setAttribute('aria-expanded', String(open)); });
+document.addEventListener('click', (e) => { if (!e.target.closest('.usermenu')) closeUserMenu(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeUserMenu(); });
+$('menu-pass').addEventListener('click', () => { closeUserMenu(); openTab('users'); });
+$('logout').addEventListener('click', async () => { closeUserMenu(); try { await api('POST', '/api/logout'); } catch { /* sesión ya cerrada */ } showLogin(); });
 
 function addPasswordToggles(root) {
   root.querySelectorAll('input[type="password"]:not([data-toggle])').forEach((inp) => {
