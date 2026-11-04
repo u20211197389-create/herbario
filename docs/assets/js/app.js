@@ -1138,7 +1138,6 @@ document.addEventListener('click', (event) => {
   const track = document.getElementById('tour-track');
   if (!track) return;
   const slides = [...track.children];
-  const count = document.getElementById('tour-count');
   const dots = document.getElementById('tour-dots');
   const index = () => Math.round(track.scrollLeft / track.clientWidth);
   const goTo = (i) => track.scrollTo({ left: Math.max(0, Math.min(slides.length - 1, i)) * track.clientWidth, behavior: 'smooth' });
@@ -1151,7 +1150,6 @@ document.addEventListener('click', (event) => {
   });
   const update = () => {
     const i = index();
-    count.textContent = `${i + 1} / ${slides.length}`;
     [...dots.children].forEach((d, n) => d.classList.toggle('on', n === i));
   };
   track.addEventListener('scroll', () => window.requestAnimationFrame(update));
@@ -1163,7 +1161,17 @@ document.addEventListener('click', (event) => {
     if (e.key === 'ArrowLeft') goTo(index() - 1);
     if (e.key === 'ArrowRight') goTo(index() + 1);
   });
+  let timer;
+  const next = () => goTo(index() === slides.length - 1 ? 0 : index() + 1);
+  const stop = () => clearInterval(timer);
+  const play = () => { stop(); timer = setInterval(() => { if (!document.getElementById('tour-cientifico').hidden && !document.hidden) next(); }, 4000); };
+  const area = track.parentElement;
+  area.addEventListener('mouseenter', stop);
+  area.addEventListener('mouseleave', play);
+  area.addEventListener('click', play);
+  document.addEventListener('keydown', play);
   update();
+  play();
 })();
 window.addEventListener('popstate', showView);
 applySiteData();
