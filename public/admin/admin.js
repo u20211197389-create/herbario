@@ -39,7 +39,7 @@ const F = (name, label, extra = {}) => ({ name, label, ...extra });
 const SECTIONS = {
   specimens: {
     title: 'Especímenes', singular: 'espécimen', key: 'catalogNumber',
-    hint: 'Registros de la colección. El número de catálogo es único; al importar un CSV, los existentes se actualizan.',
+    hint: 'Registros de la colección. El número de catálogo es único; al importar un CSV, los existentes se actualizan. En «Importar CSV» puedes elegir también las fotos (archivos llamados con el número de catálogo, por ejemplo 16513.jpg) y se asignan solas.',
     columns: ['catalogNumber', 'scientificName', 'family', 'department', 'collectedAt', 'isType'],
     fields: [
       F('catalogNumber', 'Número de catálogo', { required: true, lockOnEdit: true }), F('collectionNumber', 'Número de colecta'),
@@ -211,15 +211,33 @@ const renderEntity = async (entity) => {
   const count = el('span', { class: 'hint' });
   search.addEventListener('input', draw);
 
-  const importInput = el('input', { type: 'file', accept: '.csv,text/csv', hidden: true, onchange: async () => {
-    const f = importInput.files[0];
-    if (!f) return;
+  const importInput = el('input', { type: 'file', accept: entity === 'specimens' ? '.csv,text/csv,image/*' : '.csv,text/csv', multiple: entity === 'specimens', hidden: true, onchange: async () => {
+    const files = [...importInput.files];
+    importInput.value = '';
+    if (!files.length) return;
     try {
-      const parsed = parseCsv(await f.text());
-      if (!parsed.length) throw new Error('El CSV no tiene filas.');
-      const r = await api('POST', `/api/admin/${entity}/bulk`, { rows: parsed });
-      log.textContent = `Creados: ${r.created}. Actualizados: ${r.updated}.${r.errors.length ? `\nErrores:\n${r.errors.join('\n')}` : ''}`;
-      log.hidden = false; toast('Importación terminada.'); await renderEntity(entity); 
+      const csv = files.find((f) => /\.csv$/i.test(f.name) || f.type === 'text/csv');
+      const photos = files.filter((f) => f !== csv && f.type.startsWith('image/'));
+      const parsed = csv ? parseCsv(await csv.text()) : [];
+      if (!parsed.length && !photos.length) throw new Error('Selecciona un CSV con filas o fotos nombradas con el número de catálogo.');
+      const notes = [];
+      const known = new Set(rows.map((r) => String(r.catalogNumber)));
+      parsed.forEach((r) => known.add(String(r.catalogNumber ?? '').trim()));
+      for (const photo of photos) {
+        const code = photo.name.replace(/\.[^.]+$/, '').trim();
+        if (!known.has(code)) { notes.push(`Foto ${photo.name}: no hay un espécimen con número de catálogo ${code}.`); continue; }
+        try {
+          const { url } = await api('POST', '/api/admin/upload', undefined, await shrinkImage(photo));
+          const row = parsed.find((r) => String(r.catalogNumber ?? '').trim() === code);
+          if (row) row.image = url; else parsed.push({ catalogNumber: code, image: url });
+        } catch (e) { notes.push(`Foto ${photo.name}: ${e.message}`); }
+      }
+      const r = parsed.length ? await api('POST', `/api/admin/${entity}/bulk`, { rows: parsed }) : { created: 0, updated: 0, errors: [] };
+      const withPhoto = photos.length - notes.filter((n) => n.startsWith('Foto')).length;
+      const summary = `Creados: ${r.created}. Actualizados: ${r.updated}.${photos.length ? ` Fotos asignadas: ${withPhoto}.` : ''}${[...r.errors, ...notes].length ? `\nAvisos:\n${[...r.errors, ...notes].join('\n')}` : ''}`
+      toast('Importación terminada.'); await renderEntity(entity);
+      const shown = panel.querySelector('pre.log');
+      if (shown) { shown.textContent = summary; shown.hidden = false; }
     } catch (e) { fail(e); }
   } });
   const log = el('pre', { class: 'log', hidden: true });
