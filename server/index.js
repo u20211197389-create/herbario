@@ -13,7 +13,7 @@ const PORT = Number(process.env.PORT || 5173);
 const SECURE = process.env.HERBARIO_SECURE === '1';
 const SESSION_MS = 8 * 60 * 60 * 1000;
 // Rutas limpias del sitio público; todas entregan index.html y el navegador elige la vista.
-const PAGE_ROUTES = /^(especimenes|busqueda-avanzada|acerca|coleccion|cifras|servicios|biblioteca|publicaciones|contacto|publicaciones\/\d{1,9}|biblioteca\/\d{1,9}|ejemplar\/[\w.-]{1,20})$/;
+const PAGE_ROUTES = /^(especimenes|busqueda-avanzada|acerca|coleccion|cifras|servicios|tour-cientifico|biblioteca|publicaciones|contacto|publicaciones\/\d{1,9}|biblioteca\/\d{1,9}|ejemplar\/[\w.-]{1,20})$/;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',

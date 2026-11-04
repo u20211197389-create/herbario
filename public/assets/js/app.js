@@ -507,7 +507,7 @@ nomenQuery?.addEventListener('input', () => {
   document.querySelectorAll('#nomen-table tbody tr').forEach((row) => { row.hidden = !!term && !row.textContent.toLowerCase().includes(term); });
 });
 
-const VIEW_PATHS = ['especimenes', 'busqueda-avanzada', 'acerca', 'coleccion', 'cifras', 'servicios', 'biblioteca', 'publicaciones', 'contacto'];
+const VIEW_PATHS = ['especimenes', 'busqueda-avanzada', 'acerca', 'coleccion', 'cifras', 'servicios', 'biblioteca', 'publicaciones', 'contacto', 'tour-cientifico'];
 // Con publicación estática en un subdirectorio (p. ej. GitHub Pages), data.js define SITE_BASE.
 const BASE = window.SITE_BASE || '';
 const toPath = (route) => (route === 'inicio' ? `${BASE}/` : `${BASE}/${route}/`);
@@ -560,7 +560,7 @@ const showView = () => {
   if (detailBook) renderBookDetail(detailBook);
   if (detailPub) renderPubDetail(detailPub);
   views.forEach((view) => { view.hidden = view.dataset.view !== current; });
-  const activeMenu = current === 'publicaciones-detalle' ? 'publicaciones' : current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' ? 'servicios' : current;
+  const activeMenu = current === 'publicaciones-detalle' ? 'publicaciones' : current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' || current === 'tour-cientifico' ? 'servicios' : current;
   menuLinks.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === toPath(activeMenu)));
   window.scrollTo(0, 0);
 };
@@ -1133,6 +1133,38 @@ document.addEventListener('click', (event) => {
   navigate(url.pathname);
 });
 
+// Carrusel del tour científico: desplazamiento con imanes (scroll-snap), flechas, puntos y teclado.
+(() => {
+  const track = document.getElementById('tour-track');
+  if (!track) return;
+  const slides = [...track.children];
+  const count = document.getElementById('tour-count');
+  const dots = document.getElementById('tour-dots');
+  const index = () => Math.round(track.scrollLeft / track.clientWidth);
+  const goTo = (i) => track.scrollTo({ left: Math.max(0, Math.min(slides.length - 1, i)) * track.clientWidth, behavior: 'smooth' });
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.setAttribute('aria-label', `Ir a la foto ${i + 1}`);
+    dot.addEventListener('click', () => goTo(i));
+    dots.append(dot);
+  });
+  const update = () => {
+    const i = index();
+    count.textContent = `${i + 1} / ${slides.length}`;
+    [...dots.children].forEach((d, n) => d.classList.toggle('on', n === i));
+  };
+  track.addEventListener('scroll', () => window.requestAnimationFrame(update));
+  window.addEventListener('resize', update);
+  document.getElementById('tour-prev').addEventListener('click', () => goTo(index() === 0 ? slides.length - 1 : index() - 1));
+  document.getElementById('tour-next').addEventListener('click', () => goTo(index() === slides.length - 1 ? 0 : index() + 1));
+  document.addEventListener('keydown', (e) => {
+    if (document.getElementById('tour-cientifico').hidden) return;
+    if (e.key === 'ArrowLeft') goTo(index() - 1);
+    if (e.key === 'ArrowRight') goTo(index() + 1);
+  });
+  update();
+})();
 window.addEventListener('popstate', showView);
 applySiteData();
 renderPublications();
