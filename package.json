@@ -9,6 +9,7 @@
     "publicar": "node scripts/build-static.js",
     "crear-admin": "node server/create-admin.js",
     "d1:export": "node scripts/export-d1.mjs",
+    "sync": "node scripts/sync-from-online.mjs",
     "worker:dev": "wrangler dev --local",
     "worker:deploy": "wrangler deploy"
   },
