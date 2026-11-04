@@ -372,13 +372,15 @@ const handleApi = async (request, env, url) => {
       const { rows } = await readJson(request);
       if (!Array.isArray(rows) || rows.length > 3000) throw new HttpError(400, 'Se esperaba una lista de hasta 3000 filas.');
       const result = { created: 0, updated: 0, errors: [] };
-      const existing = entity === 'specimens'
-        ? new Set((await env.DB.prepare('SELECT catalogNumber FROM specimens').all()).results.map((r) => r.catalogNumber))
+      const previous = entity === 'specimens'
+        ? new Map((await env.DB.prepare('SELECT * FROM specimens').all()).results.map((r) => [r.catalogNumber, r]))
         : null;
+        const existing = previous ? new Set(previous.keys()) : null;
       const stmts = [];
       rows.forEach((row, i) => {
         try {
-          const value = prepare(entity, row);
+          const prev = previous?.get(String(row.catalogNumber ?? '').trim());
+          const value = prepare(entity, prev ? { ...prev, ...row } : row);
           if (existing && existing.has(value.catalogNumber)) { stmts.push(updateStmt(env, entity, value.catalogNumber, value)); result.updated += 1; }
           else { stmts.push(insertStmt(env, entity, value)); result.created += 1; existing?.add(value.catalogNumber); }
         } catch (err) { result.errors.push(`Fila ${i + 1}: ${err.message}`); }

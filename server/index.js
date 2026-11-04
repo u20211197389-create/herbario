@@ -296,9 +296,10 @@ const handleApi = async (req, res, url) => {
         rows.forEach((row, i) => {
           try {
             if (entity === 'specimens') {
-              const { value, error } = clean(entity, row);
+              const prev = db.prepare('SELECT * FROM specimens WHERE catalogNumber = ?').get(String(row.catalogNumber ?? '').trim());
+              const { value, error } = clean(entity, prev ? { ...prev, ...row } : row);
               if (error) throw new Error(error);
-              const exists = value.catalogNumber && db.prepare('SELECT 1 FROM specimens WHERE catalogNumber = ?').get(value.catalogNumber);
+              const exists = Boolean(prev);
               if (exists) { update(entity, value.catalogNumber, value); result.updated += 1; } else { insert(entity, value); result.created += 1; }
             } else { insert(entity, row); result.created += 1; }
           } catch (e) { result.errors.push(`Fila ${i + 1}: ${e.message}`); }
