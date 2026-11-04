@@ -239,8 +239,8 @@ const renderEntity = async (entity) => {
 };
 
 const ABOUT_FIELDS = [
-  ['aboutIntro', 'Introducción (párrafo inicial)', 'area'], ['mission', 'Misión', 'area'], ['founderText', 'Fundador (texto)', 'area'],
-  ['founderPhoto', 'Fundador (foto)', 'image'], ['history', 'Reseña histórica', 'area'], ['terms', 'Términos de uso', 'area'],
+  ['aboutIntro', 'Introducción (párrafo inicial)', 'area'],
+  ['history', 'Reseña histórica', 'area'], ['terms', 'Términos de uso', 'area'],
 ];
 const CONTACT_FIELDS = [
   ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'], ['mapLink', 'Mapa', 'map'],
