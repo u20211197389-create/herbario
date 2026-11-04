@@ -249,6 +249,16 @@ const CONTACT_FIELDS = [
 // Cada formulario guarda solo sus propios campos; el servidor no toca los demás.
 const renderSettings = (title, hint, fields, extra) => async () => {
   const data = await api('GET', '/api/admin/settings');
+  if (fields.some(([k]) => !data[k])) {
+    // Los campos vacíos se rellenan con el texto que el sitio público muestra por defecto.
+    try {
+      const doc = new DOMParser().parseFromString(await (await fetch('/')).text(), 'text/html');
+      for (const [k] of fields) {
+        const n = doc.querySelector('[data-setting="' + k + '"]');
+        if (!data[k] && n && !n.classList.contains('pending')) data[k] = n.textContent.trim();
+      }
+    } catch { /* se deja vacío */ }
+  }
   const inputs = {};
   const form = el('form', { class: 'card' });
   for (const [key, label, type] of fields) {
