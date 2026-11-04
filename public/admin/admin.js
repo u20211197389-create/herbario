@@ -272,9 +272,30 @@ const mapField = (key, label, value) => {
     if (!state.off && !src) toast('Ese enlace no se reconoce: use un enlace largo de google.com/maps o escriba el nombre del lugar.');
   };
   input.addEventListener('change', () => { state.off = false; sync(); });
+  // Sugerencias de lugares mientras se escribe (si hay varios con el mismo nombre, se elige uno).
+  const list = el('ul', { class: 'place-list', hidden: true });
+  let timer; let seq = 0;
+  input.addEventListener('input', () => {
+    clearTimeout(timer);
+    const q = input.value.trim();
+    if (q.length < 3 || /^https?:/i.test(q)) { list.hidden = true; return; }
+    timer = setTimeout(async () => {
+      const mine = ++seq;
+      try {
+        const places = await api('GET', `/api/admin/places?q=${encodeURIComponent(q)}`);
+        if (mine !== seq) return;
+        list.replaceChildren(...(places.length ? places.map((p) => el('li', {}, el('button', { type: 'button', onclick: () => {
+          input.value = `https://www.google.com/maps/search/?api=1&query=${p.lat},${p.lon}`;
+          list.hidden = true; state.off = false; sync();
+          toast('Lugar seleccionado. Pulse «Guardar» para publicarlo.');
+        } }, p.name))) : [el('li', { class: 'hint' }, 'Sin resultados. Pruebe con otro nombre o agregue la ciudad.')]));
+        list.hidden = false;
+      } catch { list.hidden = true; }
+    }, 450);
+  });
   const wrap = el('div', { class: 'map-field' },
-    el('label', {}, label, input),
-    el('p', { class: 'hint' }, 'Escriba el nombre o la dirección del lugar, o pegue un enlace de Google Maps (google.com/maps…). Vacío = mapa de la Universidad. Los enlaces cortos (maps.app.goo.gl) no funcionan: ábralo y copie la dirección larga.'),
+    el('label', {}, label, input), list,
+    el('p', { class: 'hint' }, 'Escriba el nombre del lugar y elija uno de la lista, o pegue un enlace de Google Maps (google.com/maps…). Vacío = mapa de la Universidad. Los enlaces cortos (maps.app.goo.gl) no funcionan: ábralo y copie la dirección larga.'),
     el('div', { class: 'row' },
       el('button', { class: 'btn small', type: 'button', onclick: () => { state.off = false; input.value = ''; sync(); } }, 'Restablecer mapa original'),
       el('button', { class: 'btn small danger', type: 'button', onclick: () => { state.off = true; sync(); } }, 'Quitar mapa')),

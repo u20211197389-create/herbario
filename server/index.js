@@ -189,6 +189,14 @@ const handleApi = async (req, res, url) => {
     return json(res, 200, { id: user.id, ...p });
   }
 
+  if (route === '/api/admin/places' && method === 'GET') {
+    const q = (url.searchParams.get('q') || '').trim().slice(0, 120);
+    if (q.length < 3) return json(res, 200, []);
+    const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=es&viewbox=-79.1,13.5,-66.8,-4.3&q=${encodeURIComponent(q)}`, { headers: { 'User-Agent': 'HerbarioSURCO/1.0 (herbario@usco.edu.co)' }, signal: AbortSignal.timeout(6000) }).catch(() => null);
+    if (!r || !r.ok) throw new HttpError(502, 'No se pudo consultar el buscador de lugares.');
+    const found = await r.json();
+    return json(res, 200, found.map((p) => ({ name: String(p.display_name || '').slice(0, 200), lat: Number(p.lat), lon: Number(p.lon) })).filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lon)));
+  }
   if (route === '/api/admin/settings') {
     if (method === 'GET') return json(res, 200, getSettings());
     if (method === 'PUT') { saveSettings(await readJson(req, 100_000)); return json(res, 200, getSettings()); }
