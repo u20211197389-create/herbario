@@ -243,10 +243,45 @@ const ABOUT_FIELDS = [
   ['founderPhoto', 'Fundador (foto)', 'image'], ['history', 'Reseña histórica', 'area'], ['terms', 'Términos de uso', 'area'],
 ];
 const CONTACT_FIELDS = [
-  ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'],
+  ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'], ['mapLink', 'Mapa', 'map'],
 ];
 
-// Cada formulario guarda solo sus propios campos; el servidor no toca los demás.
+const mapPreviewSrc = (value) => {
+  const v = (value || '').trim() || 'Universidad Surcolombiana sede Neiva';
+  const embed = (q) => `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=16&output=embed`;
+  if (!/^https?:/i.test(v)) return embed(v);
+  try {
+    const url = new URL(v);
+    if (!/^(www\.|maps\.)?google\.com$/.test(url.hostname) || !url.pathname.startsWith('/maps')) return '';
+    if (url.pathname.startsWith('/maps/embed')) return v;
+    const place = url.pathname.match(/\/maps\/place\/([^/]+)/);
+    const coords = url.pathname.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+    const q = url.searchParams.get('q') || url.searchParams.get('query') || (place && decodeURIComponent(place[1].replace(/\+/g, ' '))) || (coords && `${coords[1]},${coords[2]}`);
+    return q ? embed(q) : '';
+  } catch { return ''; }
+};
+const mapField = (key, label, value) => {
+  const input = el('input', { value: value && value !== '-' ? value : '', maxLength: 500, placeholder: 'Nombre del lugar o enlace de Google Maps' });
+  const hidden = el('p', { class: 'hint' }, 'El mapa está oculto en la página «Contacto».');
+  const frame = el('iframe', { class: 'map-preview', title: 'Vista previa del mapa', referrerpolicy: 'no-referrer-when-downgrade' });
+  const state = { off: value === '-' };
+  const sync = () => {
+    const src = state.off ? '' : mapPreviewSrc(input.value);
+    frame.hidden = !src; hidden.hidden = !state.off;
+    if (src && frame.src !== src) frame.src = src;
+    if (!state.off && !src) toast('Ese enlace no se reconoce: use un enlace largo de google.com/maps o escriba el nombre del lugar.');
+  };
+  input.addEventListener('change', () => { state.off = false; sync(); });
+  const wrap = el('div', { class: 'map-field' },
+    el('label', {}, label, input),
+    el('p', { class: 'hint' }, 'Escriba el nombre o la dirección del lugar, o pegue un enlace de Google Maps (google.com/maps…). Vacío = mapa de la Universidad. Los enlaces cortos (maps.app.goo.gl) no funcionan: ábralo y copie la dirección larga.'),
+    el('div', { class: 'row' },
+      el('button', { class: 'btn small', type: 'button', onclick: () => { state.off = false; input.value = ''; sync(); } }, 'Restablecer mapa original'),
+      el('button', { class: 'btn small danger', type: 'button', onclick: () => { state.off = true; sync(); } }, 'Quitar mapa')),
+    hidden, frame);
+  sync();
+  return { wrap, get: () => (state.off ? '-' : input.value.trim()) };
+};// Cada formulario guarda solo sus propios campos; el servidor no toca los demás.
 const renderSettings = (title, hint, fields, extra) => async () => {
   const data = await api('GET', '/api/admin/settings');
   if (fields.some(([k]) => !data[k])) {
@@ -262,6 +297,7 @@ const renderSettings = (title, hint, fields, extra) => async () => {
   const inputs = {};
   const form = el('form', { class: 'card' });
   for (const [key, label, type] of fields) {
+    if (type === 'map') { const m = mapField(key, label, data[key]); form.append(m.wrap); inputs[key] = m.get; continue; }
     if (type === 'image') { form.append(imageField({ name: key, label }, data[key])); inputs[key] = () => form.querySelector(`[name="${key}"]`).value; continue; }
     const inp = type === 'area' ? el('textarea', { value: data[key] || '', maxLength: 5000 }) : el('input', { value: data[key] || '', maxLength: 500 });
     form.append(el('label', {}, label, inp)); inputs[key] = () => inp.value;

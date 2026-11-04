@@ -139,6 +139,7 @@ const saveSettings = async (env, input) => {
     if (v.length > max) throw new HttpError(400, `El texto "${k}" es demasiado largo.`);
     if (k === 'founderPhoto' && v && !/^(https?:\/\/[^\s]+|\/uploads\/[A-Za-z0-9._-]+)$/i.test(v)) throw new HttpError(400, 'La foto debe ser un enlace http(s) o una imagen subida.');
     if (k === 'tourImages' && v && v.split(/\r?\n/).some((l) => !/^(https?:\/\/[^\s]+|\/uploads\/[A-Za-z0-9._-]+|\/assets\/img\/tour\/[A-Za-z0-9._-]+)$/i.test(l.trim()))) throw new HttpError(400, 'Cada imagen debe ser un enlace http(s) o una imagen subida.');
+    if (k === 'mapLink' && v && v !== '-' && /^https?:/i.test(v) && !/^https:\/\/(www\.|maps\.)?google\.com\/maps/i.test(v)) throw new HttpError(400, 'El mapa debe ser un enlace de Google Maps (google.com/maps) o el nombre del lugar. Los enlaces cortos (maps.app.goo.gl) no sirven: abra el enlace y copie la dirección larga.');
     stmts.push(env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, v));
   }
   if (stmts.length) await env.DB.batch(stmts);

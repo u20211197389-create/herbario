@@ -1081,6 +1081,22 @@ const renderPublications = () => {
   });
 };
 
+// Convierte lo escrito en el panel (nombre del lugar o enlace de Google Maps) en la dirección del mapa incrustado.
+const mapSources = (value) => {
+  const v = (value || '').trim();
+  const embed = (q) => `https://maps.google.com/maps?q=${encodeURIComponent(q)}&z=16&output=embed`;
+  const open = (q) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
+  if (!v) return { embed: embed('Universidad Surcolombiana sede Neiva'), open: open('Universidad Surcolombiana sede Neiva') };
+  if (!/^https?:/i.test(v)) return { embed: embed(v), open: open(v) };
+  let url;
+  try { url = new URL(v); } catch { return null; }
+  if (!/^(www\.|maps\.)?google\.com$/.test(url.hostname) || !url.pathname.startsWith('/maps')) return null;
+  if (url.pathname.startsWith('/maps/embed')) return { embed: v, open: v };
+  const place = url.pathname.match(/\/maps\/place\/([^/]+)/);
+  const coords = url.pathname.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const q = url.searchParams.get('q') || url.searchParams.get('query') || (place && decodeURIComponent(place[1].replace(/\+/g, ' '))) || (coords && `${coords[1]},${coords[2]}`);
+  return q ? { embed: embed(q), open: v } : null;
+};
 const setPhoto = (box, src, alt) => {
   if (!src) return;
   const img = document.createElement('img');
@@ -1098,6 +1114,17 @@ const applySiteData = () => {
     node.classList.remove('pending');
   });
   setPhoto(document.querySelector('[data-setting-photo]'), siteSettings.founderPhoto, 'Fotografía del fundador');
+  const mapBox = document.querySelector('.contact-map-wrap');
+  if (mapBox && siteSettings.mapLink) {
+    if (siteSettings.mapLink.trim() === '-') mapBox.hidden = true;
+    else {
+      const src = mapSources(siteSettings.mapLink);
+      if (src) {
+        mapBox.querySelector('iframe').src = src.embed;
+        mapBox.querySelector('.map-link').href = src.open;
+      }
+    }
+  }
 
   const grid = document.getElementById('member-grid');
   grid.replaceChildren();
