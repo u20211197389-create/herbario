@@ -714,4 +714,5 @@ main { padding-bottom: 40px; }
 .tour-info p{line-height:1.75;margin:0 0 1rem}
 .tour-info .tour-lead{font-family:Georgia,"Times New Roman",serif;font-size:1.25rem;font-style:italic;text-align:center;margin-bottom:1.4rem}
 .tour-info h3{font-family:Georgia,"Times New Roman",serif;font-weight:400;color:#111;font-size:1.35rem;margin:1.8rem 0 .6rem}
-.tour-info .tour-note{margin-top:1.6rem;padding:1rem 1.2rem;background:#faf7f2;border-left:4px solid #e0b323;border-radius:8px}
+.tour-info .tour-note{margin-top:1.6rem;padding:1rem 1.2rem;background:#faf7f2;border-left:4px solid #e0b323;border-radius:8px}.panel.about .history-text h4 { margin: 26px 0 8px; font-size: 22px; font-weight: 600; color: var(--maroon, #7f1d1d); }
+.panel.about .history-text p { margin: 0 0 14px; }

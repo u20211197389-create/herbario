@@ -1110,6 +1110,12 @@ const applySiteData = () => {
   document.querySelectorAll('[data-setting]').forEach((node) => {
     const value = (siteSettings[node.dataset.setting] || '').trim();
     if (!value) return;
+    if (node.dataset.setting === 'history') {
+      const blocks = value.split(/\r?\n\s*\r?\n/).map((b) => b.trim()).filter(Boolean).map((b) => (b.startsWith('## ') ? createElement('h4', 'history-heading', b.slice(3)) : createElement('p', '', b)));
+      node.replaceChildren(...blocks);
+      node.classList.remove('pending');
+      return;
+    }
     node.textContent = value;
     node.classList.remove('pending');
   });
