@@ -1137,6 +1137,34 @@ document.addEventListener('click', (event) => {
 (() => {
   const track = document.getElementById('tour-track');
   if (!track) return;
+  // Contenido editable desde el panel (Servicios); si está vacío se conserva el texto original de la página.
+  const base = window.SITE_BASE || '';
+  const urls = (siteSettings.tourImages || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (urls.length) {
+    track.replaceChildren(...urls.map((src, n) => {
+      const li = document.createElement('li');
+      li.className = 'tour-slide';
+      const img = document.createElement('img');
+      img.src = src.startsWith('/') ? base + src : src;
+      img.alt = `Tour científico: foto ${n + 1} de ${urls.length}`;
+      if (n) img.loading = 'lazy';
+      li.append(img);
+      return li;
+    }));
+  }
+  const info = document.querySelector('.tour-info');
+  const blocks = (siteSettings.tourText || '').split(/\r?\n\s*\r?\n/).map((b) => b.trim()).filter(Boolean);
+  if (info && blocks.length) {
+    info.replaceChildren(...blocks.map((b, n) => {
+      const heading = b.startsWith('## ');
+      const note = b.startsWith('> ');
+      const node = document.createElement(heading ? 'h3' : 'p');
+      node.textContent = heading ? b.slice(3) : note ? b.slice(2) : b;
+      if (note) node.className = 'tour-note';
+      else if (!heading && n === 0) node.className = 'tour-lead';
+      return node;
+    }));
+  }
   const slides = [...track.children];
   const dots = document.getElementById('tour-dots');
   const index = () => Math.round(track.scrollLeft / track.clientWidth);

@@ -135,9 +135,10 @@ const saveSettings = async (env, input) => {
   for (const k of SETTING_KEYS) {
     if (!(k in input)) continue;
     const v = String(input[k] ?? '').trim();
-    const max = ['history', 'terms', 'mission', 'founderText', 'aboutIntro'].includes(k) ? 5000 : 500;
+    const max = k === 'tourText' ? 20000 : k === 'tourImages' ? 5000 : ['history', 'terms', 'mission', 'founderText', 'aboutIntro'].includes(k) ? 5000 : 500;
     if (v.length > max) throw new HttpError(400, `El texto "${k}" es demasiado largo.`);
     if (k === 'founderPhoto' && v && !/^(https?:\/\/[^\s]+|\/uploads\/[A-Za-z0-9._-]+)$/i.test(v)) throw new HttpError(400, 'La foto debe ser un enlace http(s) o una imagen subida.');
+    if (k === 'tourImages' && v && v.split(/\r?\n/).some((l) => !/^(https?:\/\/[^\s]+|\/uploads\/[A-Za-z0-9._-]+|\/assets\/img\/tour\/[A-Za-z0-9._-]+)$/i.test(l.trim()))) throw new HttpError(400, 'Cada imagen debe ser un enlace http(s) o una imagen subida.');
     stmts.push(env.DB.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value').bind(k, v));
   }
   if (stmts.length) await env.DB.batch(stmts);

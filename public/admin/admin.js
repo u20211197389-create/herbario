@@ -354,10 +354,59 @@ const renderRequests = async () => {
     rows.length ? el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...['Fecha', 'Ejemplar', 'Correo', 'Motivo', 'Estado', 'Enlace', ''].map((h) => el('th', {}, h)))), body)) : el('p', {}, 'No hay solicitudes.'));
 };
 
+const renderServices = async () => {
+  const data = await api('GET', '/api/admin/settings');
+  let text = data.tourText || '';
+  let images = (data.tourImages || '').split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!text || !images.length) {
+    // Si aún no se ha personalizado, se parte del contenido actual de la página pública.
+    try {
+      const doc = new DOMParser().parseFromString(await (await fetch('/tour-cientifico/')).text(), 'text/html');
+      if (!text) text = [...doc.querySelectorAll('.tour-info > *')].map((n) => (n.tagName === 'H3' ? '## ' : n.classList.contains('tour-note') ? '> ' : '') + n.textContent.trim()).join('\n\n');
+      if (!images.length) images = [...doc.querySelectorAll('#tour-track img')].map((i) => i.getAttribute('src'));
+    } catch { /* sin contenido inicial */ }
+  }
+  const area = el('textarea', { class: 'tour-text', value: text, maxLength: 20000, rows: 18 });
+  const grid = el('div', { class: 'tour-admin-grid' });
+  const draw = () => {
+    grid.replaceChildren(...images.map((src, i) => el('figure', {},
+      el('img', { src, alt: `Foto ${i + 1}`, loading: 'lazy' }),
+      el('div', { class: 'tour-admin-actions' },
+        el('button', { class: 'btn small', type: 'button', title: 'Mover antes', disabled: i === 0, onclick: () => { [images[i - 1], images[i]] = [images[i], images[i - 1]]; draw(); } }, '←'),
+        el('button', { class: 'btn small', type: 'button', title: 'Mover después', disabled: i === images.length - 1, onclick: () => { [images[i + 1], images[i]] = [images[i], images[i + 1]]; draw(); } }, '→'),
+        el('button', { class: 'btn small danger', type: 'button', onclick: () => { images.splice(i, 1); draw(); } }, 'Eliminar')))));
+    if (!images.length) grid.append(el('p', { class: 'hint' }, 'Sin imágenes: la página pública mostrará las fotos originales del tour.'));
+  };
+  const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple: true, onchange: async () => {
+    try {
+      for (const f of file.files) {
+        const { url } = await api('POST', '/api/admin/upload', undefined, await shrinkImage(f));
+        images.push(url);
+      }
+      draw();
+    } catch (e) { fail(e); }
+    file.value = '';
+  } });
+  draw();
+  const save = el('button', { class: 'btn', type: 'button', onclick: async () => {
+    try { await api('PUT', '/api/admin/settings', { tourText: area.value, tourImages: images.join('\n') }); toast('Guardado.'); } catch (e) { fail(e); }
+  } }, 'Guardar cambios');
+  $('panel').replaceChildren(el('h2', {}, 'Servicios'),
+    el('p', { class: 'hint' }, 'Contenido de la página «Tour científico» (Servicios → Ver el tour).'),
+    el('div', { class: 'card' },
+      el('h3', {}, 'Texto'),
+      el('p', { class: 'hint' }, 'Separe los párrafos con una línea en blanco. Una línea que empiece con «## » es un subtítulo y una que empiece con «> » es un recuadro destacado. El primer párrafo se muestra como frase de introducción.'),
+      area),
+    el('div', { class: 'card' },
+      el('h3', {}, 'Imágenes del carrusel'),
+      el('p', { class: 'hint' }, 'Agregue fotos, elimine las que no quiera y cambie el orden con las flechas. Recuerde pulsar «Guardar cambios».'),
+      grid, el('label', {}, 'Agregar imágenes', file)),
+    el('div', { class: 'row' }, save));
+};
 const TABS = [
   ['specimens', 'Especímenes', () => renderEntity('specimens')], ['publications', 'Publicaciones', () => renderEntity('publications')],
   ['library', 'Biblioteca', () => renderEntity('library')], ['members', 'Integrantes', () => renderEntity('members')],
-  ['about', 'Acerca', renderSettings('Acerca', 'Textos de la página «Acerca». Las personas se editan en la pestaña «Integrantes». Si un campo queda vacío, el sitio muestra «pendiente de definir».', ABOUT_FIELDS, () => el('p', {}, el('button', { class: 'btn', type: 'button', onclick: () => openTab('members') }, 'Editar, agregar o eliminar integrantes (personas)')))], ['contact', 'Contacto', renderSettings('Contacto', 'Datos de la página «Contacto». Si un campo queda vacío, el sitio muestra «pendiente de definir».', CONTACT_FIELDS)], ['requests', 'Solicitudes', renderRequests], ['cifras', 'Cifras', renderCifras], ['users', 'Usuarios', renderUsers],
+  ['about', 'Acerca', renderSettings('Acerca', 'Textos de la página «Acerca». Las personas se editan en la pestaña «Integrantes». Si un campo queda vacío, el sitio muestra «pendiente de definir».', ABOUT_FIELDS, () => el('p', {}, el('button', { class: 'btn', type: 'button', onclick: () => openTab('members') }, 'Editar, agregar o eliminar integrantes (personas)')))], ['services', 'Servicios', renderServices], ['contact', 'Contacto', renderSettings('Contacto', 'Datos de la página «Contacto». Si un campo queda vacío, el sitio muestra «pendiente de definir».', CONTACT_FIELDS)], ['requests', 'Solicitudes', renderRequests], ['cifras', 'Cifras', renderCifras], ['users', 'Usuarios', renderUsers],
 ];
 
 const openTab = (id) => {

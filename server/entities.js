@@ -32,7 +32,7 @@ export const ENTITIES = {
   },
 };
 
-export const SETTING_KEYS = ['aboutIntro', 'mission', 'founderText', 'founderPhoto', 'history', 'terms', 'phone', 'address'];
+export const SETTING_KEYS = ['aboutIntro', 'mission', 'founderText', 'founderPhoto', 'history', 'terms', 'phone', 'address', 'tourText', 'tourImages'];
 
 export const DEFAULT_MEMBERS = [
   ['Director(a)', 'Nombre pendiente', 'dirige el herbario, autoriza los servicios y representa a la colección ante la universidad.'],
