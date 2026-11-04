@@ -560,7 +560,7 @@ const showView = () => {
   if (detailBook) renderBookDetail(detailBook);
   if (detailPub) renderPubDetail(detailPub);
   views.forEach((view) => { view.hidden = view.dataset.view !== current; });
-  const activeMenu = current === 'publicaciones-detalle' ? 'publicaciones' : current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' || current === 'tour-cientifico' ? 'servicios' : current;
+  const activeMenu = current === 'publicaciones-detalle' || current === 'publicaciones' ? 'servicios' : current === 'ejemplar' || current === 'busqueda-avanzada' ? 'especimenes' : current === 'biblioteca' || current === 'biblioteca-detalle' || current === 'tour-cientifico' ? 'servicios' : current;
   menuLinks.forEach((link) => link.classList.toggle('is-active', link.getAttribute('href') === toPath(activeMenu)));
   window.scrollTo(0, 0);
 };
