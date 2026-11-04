@@ -261,7 +261,7 @@ const ABOUT_FIELDS = [
   ['history', 'Reseña histórica', 'area'], ['terms', 'Términos de uso', 'area'],
 ];
 const CONTACT_FIELDS = [
-  ['phone', 'Teléfono', 'text'], ['address', 'Dirección', 'text'], ['mapLink', 'Mapa', 'map'],
+  ['address', 'Dirección', 'text'], ['mapLink', 'Mapa', 'map'],
 ];
 
 const mapPreviewSrc = (value) => {
