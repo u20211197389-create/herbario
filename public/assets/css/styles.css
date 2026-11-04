@@ -691,3 +691,5 @@ main { padding-bottom: 40px; }
 /* Títulos en negro y sin negrita */
 .page-title, .libd-head .page-title { color: #111 !important; font-weight: 400 !important; }
 .panel h3 { color: #111; font-weight: 400; }
+
+#search-feedback{display:inline-block;padding:8px 16px;border-radius:999px;background:#fbf3d9;border:1px solid #ecd58a;color:#5a0f0f;margin:0}#search-feedback strong{font-size:1.1em}#query-description[hidden]{display:none}

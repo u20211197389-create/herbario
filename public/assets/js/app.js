@@ -312,9 +312,15 @@ sortSelect?.addEventListener('change', () => renderResults());
 
 const renderResults = () => {
   specimenResults.replaceChildren();
-  queryDescription.replaceChildren(createElement('strong', '', 'Consulta por '), document.createTextNode(currentDescription));
+  const total = herbariumSpecimens.length;
   const count = currentResults.length;
-  searchFeedback.replaceChildren(createElement('strong', '', String(count)), document.createTextNode(count === 1 ? ' registro' : ' registros'));
+  const filtered = currentDescription !== 'Todos los ejemplares';
+  queryDescription.hidden = !filtered;
+  queryDescription.replaceChildren(createElement('strong', '', 'Búsqueda: '), document.createTextNode(currentDescription));
+  const noun = (n) => (n === 1 ? ' espécimen' : ' especímenes');
+  searchFeedback.replaceChildren(...(filtered
+    ? [createElement('strong', '', String(count)), document.createTextNode(' de ' + total + noun(total))]
+    : [document.createTextNode('Total en la colección: '), createElement('strong', '', String(total)), document.createTextNode(noun(total))]));
   downloadButton.disabled = count === 0;
 
   if (count === 0) {
