@@ -358,13 +358,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/uploads/')) {
       const file = safeJoin(UPLOAD_DIR, url.pathname.slice('/uploads/'.length));
       if (!file) return send(res, 404, 'No encontrado');
-      const imageUrl = `/uploads/${path.basename(file)}`;
-      const specimenImage = db.prepare('SELECT catalogNumber FROM specimens WHERE image = ?').get(imageUrl);
-      const grantedToken = url.searchParams.get('t') || '';
-      const granted = specimenImage && /^[a-f0-9]{64}$/.test(grantedToken)
-        && db.prepare("SELECT 1 FROM image_requests WHERE token = ? AND status = 'aprobada' AND expiresAt > ? AND catalogNumber = ?").get(grantedToken, Date.now(), specimenImage.catalogNumber);
-      if (specimenImage && !granted && !currentUser(req)) return send(res, 401, 'No autorizado', { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-      return serveFile(res, req, file, specimenImage ? { 'Cache-Control': 'private, no-store' } : {});
+      return serveFile(res, req, file);
     }
     let rel = url.pathname === '/' ? '/index.html' : url.pathname;
     if (rel === '/admin') return send(res, 301, '', { Location: '/admin/' });

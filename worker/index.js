@@ -150,7 +150,7 @@ const publicData = async (env) => {
     list(env, 'specimens'), list(env, 'library'), list(env, 'publications'), list(env, 'members'), getSettings(env)]);
   const split = (v) => (v ? v.split(',').map((x) => x.trim()).filter(Boolean) : []);
   return {
-    specimens: specs.map(({ image, ...s }) => ({ ...s, hasImage: Boolean(image), isType: Boolean(s.isType) })),
+    specimens: specs.map((s) => ({ ...s, hasImage: Boolean(s.image), isType: Boolean(s.isType) })),
     libraryItems: lib.map(({ contributors, subjects, ...r }) => ({ ...r, contributors: split(contributors), subjects: split(subjects) })),
     publications: publications,
     siteMembers: members.map(({ id, position, ...r }) => r),
@@ -183,17 +183,10 @@ const serveUpload = async (request, env, url) => {
   if (!/^[A-Za-z0-9._-]{1,80}$/.test(name)) return respond('No encontrado', 404);
   const meta = await env.DB.prepare('SELECT type FROM uploads WHERE name = ?').bind(name).first();
   if (!meta) return respond('No encontrado', 404);
-  const imageUrl = `/uploads/${name}`;
-  const specimen = await env.DB.prepare('SELECT catalogNumber FROM specimens WHERE image = ?').bind(imageUrl).first();
-  if (specimen) {
-    const token = url.searchParams.get('t') || '';
-    const granted = /^[a-f0-9]{64}$/.test(token) && await env.DB.prepare("SELECT 1 FROM image_requests WHERE token = ? AND status = 'aprobada' AND expiresAt > ? AND catalogNumber = ?").bind(token, Date.now(), specimen.catalogNumber).first();
-    if (!granted && !(await currentUser(request, env))) return respond('No autorizado', 401, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-store' });
-  }
   const { results } = await env.DB.prepare('SELECT data FROM upload_chunks WHERE name = ? ORDER BY idx').bind(name).all();
   const bin = atob(results.map((r) => r.data).join(''));
   const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
-  return respond(bytes, 200, { 'Content-Type': meta.type, 'Cache-Control': specimen ? 'private, no-store' : 'public, max-age=31536000, immutable' });
+  return respond(bytes, 200, { 'Content-Type': meta.type, 'Cache-Control': 'public, max-age=31536000, immutable' });
 };
 
 const handleApi = async (request, env, url) => {
