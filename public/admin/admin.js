@@ -50,7 +50,7 @@ const SECTIONS = {
       F('habitat', 'Hábitat', { wide: true }), F('collectedAt', 'Fecha de colecta (AAAA-MM-DD)'), F('collectors', 'Colectores'),
       F('identifiedBy', 'Identificado por'), F('originalLatitude', 'Latitud'), F('originalLongitude', 'Longitud'),
       F('minAltitude', 'Altitud mínima (m)'), F('maxAltitude', 'Altitud máxima (m)'),
-      F('isType', 'Es ejemplar tipo', { type: 'bool' }), F('image', 'Imagen del espécimen', { type: 'image', wide: true }),
+      F('isType', 'Es ejemplar tipo', { type: 'bool' }), F('image', 'Imagen del espécimen', { type: 'image', wide: true }), F('hideImage', 'Ocultar foto al público', { type: 'bool' }),
     ],
   },
   publications: {

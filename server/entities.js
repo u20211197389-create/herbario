@@ -11,7 +11,7 @@ export const ENTITIES = {
       f('habit', 'text', 100), f('reproductiveCondition', 'text', 100), f('country', 'text', 100), f('department', 'text', 100),
       f('municipality', 'text', 100), f('locality', 'text', 400), f('collectedAt', 'text', 40), f('collectors', 'text', 300),
       f('identifiedBy', 'text', 300), f('originalLatitude', 'text', 40), f('originalLongitude', 'text', 40),
-      f('minAltitude', 'text', 20), f('maxAltitude', 'text', 20), f('commonName'), f('isType', 'bool'), f('image', 'url', 500),
+      f('minAltitude', 'text', 20), f('maxAltitude', 'text', 20), f('commonName'), f('isType', 'bool'), f('image', 'url', 500), f('hideImage', 'bool'),
     ],
   },
   publications: {

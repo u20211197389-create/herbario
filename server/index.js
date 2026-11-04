@@ -358,6 +358,7 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname.startsWith('/uploads/')) {
       const file = safeJoin(UPLOAD_DIR, url.pathname.slice('/uploads/'.length));
       if (!file) return send(res, 404, 'No encontrado');
+      if (db.prepare('SELECT 1 FROM specimens WHERE image = ? AND hideImage = 1').get(`/uploads/${path.basename(file)}`) && !currentUser(req)) return send(res, 404, 'No encontrado');
       return serveFile(res, req, file);
     }
     let rel = url.pathname === '/' ? '/index.html' : url.pathname;

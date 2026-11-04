@@ -120,7 +120,7 @@ export const saveSettings = (input) => {
 
 // Datos públicos en el formato que espera app.js.
 export const publicData = () => {
-  const specimens = list('specimens').map((s) => ({ ...s, hasImage: Boolean(s.image), isType: Boolean(s.isType) }));
+  const specimens = list('specimens').map(({ hideImage, ...s }) => { const image = hideImage ? '' : s.image; return { ...s, image, hasImage: Boolean(image), isType: Boolean(s.isType) }; });
   const libraryItems =   list('library').map(({ contributors, subjects, ...r }) => ({
     ...r,
     contributors: contributors ? contributors.split(',').map((x) => x.trim()).filter(Boolean) : [],

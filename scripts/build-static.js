@@ -7,6 +7,7 @@ import { db, ROOT, UPLOAD_DIR, publicData } from '../server/db.js';
 const BASE = (process.env.SITE_BASE ?? '/herbario').replace(/\/+$/, '');
 const PUBLIC = path.join(ROOT, 'public');
 const OUT = path.join(ROOT, 'docs');
+const hiddenImages = new Set(db.prepare("SELECT image FROM specimens WHERE hideImage = 1 AND image LIKE '/uploads/%'").all().map(({ image }) => path.basename(image)));
 
 fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(OUT, { recursive: true });
@@ -14,6 +15,7 @@ fs.cpSync(path.join(PUBLIC, 'assets'), path.join(OUT, 'assets'), { recursive: tr
 if (fs.existsSync(UPLOAD_DIR)) {
   fs.cpSync(UPLOAD_DIR, path.join(OUT, 'uploads'), {
     recursive: true,
+    filter: (source) => !hiddenImages.has(path.basename(source)),
   });
 }
 
