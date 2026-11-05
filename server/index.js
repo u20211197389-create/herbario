@@ -62,10 +62,10 @@ const parseCookies = (req) => Object.fromEntries(String(req.headers.cookie || ''
 const currentUser = (req) => {
   const token = parseCookies(req).sid;
   if (!token || !/^[a-f0-9]{64}$/.test(token)) return null;
-  const row = db.prepare('SELECT u.id, u.username, u.displayName, u.email, u.avatar, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').get(hashToken(token));
+  const row = db.prepare('SELECT u.id, u.username, u.displayName, u.email, u.avatar, u.role, s.expiresAt FROM sessions s JOIN users u ON u.id = s.userId WHERE s.tokenHash = ?').get(hashToken(token));
   if (!row) return null;
   if (row.expiresAt < Date.now()) { db.prepare('DELETE FROM sessions WHERE tokenHash = ?').run(hashToken(token)); return null; }
-  return { id: row.id, username: row.username, displayName: row.displayName || '', email: row.email || '', avatar: row.avatar || '' };
+  return { id: row.id, username: row.username, displayName: row.displayName || '', email: row.email || '', avatar: row.avatar || '', role: row.role || 'administrador' };
 };
 
 const AVATAR_RE = /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/;
@@ -190,6 +190,7 @@ const handleApi = async (req, res, url) => {
   }
 
   if (route === '/api/admin/places' && method === 'GET') {
+    if (user.role !== 'administrador') throw new HttpError(403, 'No tiene permiso para esta acción.');
     const q = (url.searchParams.get('q') || '').trim().slice(0, 120);
     if (q.length < 3) return json(res, 200, []);
     const r = await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=8&accept-language=es&viewbox=-79.1,13.5,-66.8,-4.3&q=${encodeURIComponent(q)}`, { headers: { 'User-Agent': 'HerbarioSURCO/1.0 (herbario@usco.edu.co)' }, signal: AbortSignal.timeout(6000) }).catch(() => null);
@@ -198,8 +199,14 @@ const handleApi = async (req, res, url) => {
     return json(res, 200, found.map((p) => ({ name: String(p.display_name || '').slice(0, 200), lat: Number(p.lat), lon: Number(p.lon) })).filter((p) => p.name && Number.isFinite(p.lat) && Number.isFinite(p.lon)));
   }
   if (route === '/api/admin/settings') {
-    if (method === 'GET') return json(res, 200, getSettings());
-    if (method === 'PUT') { saveSettings(await readJson(req, 100_000)); return json(res, 200, getSettings()); }
+    if (method === 'GET') {
+      if (!['administrador', 'curador'].includes(user.role)) throw new HttpError(403, 'No tiene permiso para consultar esta sección.');
+      return json(res, 200, getSettings());
+    }
+    if (method === 'PUT') {
+      if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede modificar esta sección.');
+      saveSettings(await readJson(req, 100_000)); return json(res, 200, getSettings());
+    }
   }
 
   if (route === '/api/admin/password' && method === 'POST') {
@@ -213,6 +220,7 @@ const handleApi = async (req, res, url) => {
   }
 
   if (route === '/api/admin/upload' && method === 'POST') {
+    if (!['administrador', 'curador', 'pasante', 'auxiliar'].includes(user.role)) throw new HttpError(403, 'No tiene permiso para subir imágenes.');
     const body = await readBody(req, 3 * 1024 * 1024);
     const ext = imageType(body);
     if (!ext) throw new HttpError(400, 'Solo se permiten imÃ¡genes PNG, JPG o WEBP.');
@@ -224,6 +232,8 @@ const handleApi = async (req, res, url) => {
   const requestMatch = route.match(/^\/api\/admin\/solicitudes(?:\/(\d+))?$/);
   if (requestMatch) {
     const id = requestMatch[1] ? Number(requestMatch[1]) : null;
+    if (!['administrador', 'curador'].includes(user.role)) throw new HttpError(403, 'No tiene permiso para consultar solicitudes.');
+    if (method !== 'GET' && user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar solicitudes.');
     if (!id && method === 'GET') return json(res, 200, db.prepare('SELECT id, catalogNumber, email, reason, status, token, expiresAt, createdAt, decidedAt, kind FROM image_requests ORDER BY id DESC').all().map((r) => ({ ...r })));
     if (id && method === 'PATCH') {
       const { status } = await readJson(req, 1_000);
@@ -252,23 +262,28 @@ const handleApi = async (req, res, url) => {
   }
 
   if (route === '/api/admin/users') {
-    if (method === 'GET') return json(res, 200, db.prepare('SELECT id, username, createdAt FROM users ORDER BY id').all().map((r) => ({ ...r })));
+    if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar usuarios.');
+    if (method === 'GET') return json(res, 200, db.prepare('SELECT id, username, role, createdAt FROM users ORDER BY id').all().map((r) => ({ ...r })));
     if (method === 'POST') {
-      const { username, password } = await readJson(req, 10_000);
+      const { username, password, role } = await readJson(req, 10_000);
       const name = String(username || '').trim();
+      const userRole = String(role || '');
+      if (!['administrador', 'curador', 'pasante', 'auxiliar', 'monitor'].includes(userRole)) throw new HttpError(400, 'Seleccione un tipo de usuario válido.');
       if (!/^[\w.@-]{3,60}$/.test(name)) throw new HttpError(400, 'Usuario no vÃ¡lido (3 a 60 caracteres: letras, nÃºmeros, . _ - @).');
       const problem = passwordProblem(password);
       if (problem) throw new HttpError(400, problem);
       if (db.prepare('SELECT 1 FROM users WHERE username = ?').get(name)) throw new HttpError(409, 'Ese usuario ya existe.');
-      db.prepare('INSERT INTO users (username, passwordHash) VALUES (?, ?)').run(name, hashPassword(password));
+      db.prepare('INSERT INTO users (username, passwordHash, role) VALUES (?, ?, ?)').run(name, hashPassword(password), userRole);
       return json(res, 201, { ok: true });
     }
   }
   const userMatch = route.match(/^\/api\/admin\/users\/(\d+)$/);
   if (userMatch && method === 'DELETE') {
+    if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar usuarios.');
     const id = Number(userMatch[1]);
     if (id === user.id) throw new HttpError(400, 'No puede eliminar su propio usuario.');
-    if (db.prepare('SELECT COUNT(*) AS n FROM users').get().n <= 1) throw new HttpError(400, 'Debe quedar al menos un administrador.');
+    if (db.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'administrador'").get().n <= 1
+      && db.prepare('SELECT role FROM users WHERE id = ?').get(id)?.role === 'administrador') throw new HttpError(400, 'Debe quedar al menos un administrador.');
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
     return json(res, 200, { ok: true });
   }
@@ -277,6 +292,13 @@ const handleApi = async (req, res, url) => {
   if (m) {
     const entity = m[1];
     const sub = m[2];
+    if (method === 'GET' && entity !== 'specimens' && !['administrador', 'curador'].includes(user.role)) throw new HttpError(403, 'No tiene permiso para consultar esta sección.');
+    if (method !== 'GET') {
+      if (entity === 'specimens') {
+        if (!['administrador', 'curador', 'pasante', 'auxiliar'].includes(user.role)) throw new HttpError(403, 'No tiene permiso para modificar especímenes.');
+        if (method === 'DELETE' && !['administrador', 'curador'].includes(user.role)) throw new HttpError(403, 'Solo el administrador o el curador pueden eliminar especímenes.');
+      } else if (user.role !== 'administrador') throw new HttpError(403, 'No tiene permiso para modificar esta sección.');
+    }
     if (!sub) {
       if (method === 'GET') return json(res, 200, list(entity));
       if (method === 'POST') {
@@ -381,4 +403,3 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(PORT, HOST, () => console.log(`Herbario SURCO en http://${HOST}:${PORT}  (administración: /admin/)`));
-

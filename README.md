@@ -25,7 +25,7 @@ Variables opcionales: `PORT`, `HOST` (por defecto `127.0.0.1`), `HERBARIO_DATA` 
 
 ## Panel de administración
 
-Permite agregar, editar y eliminar: **Especímenes**, **Publicaciones**, **Biblioteca**, **Integrantes**, **Acerca** (introducción, misión, fundador, historia, términos), **Contacto** (teléfono, dirección, Instagram) y **Usuarios**. Cada lista admite importar, exportar y descargar plantilla CSV, y las imágenes (portadas y fotos) se suben como PNG, JPG o WEBP de hasta 3 MB.
+Los tipos de usuario son **Administrador** (acceso completo), **Curador** (administra especímenes y consulta las demás secciones), **Pasante** y **Auxiliar** (consultan y crean/editan especímenes, sin eliminarlos) y **Monitor** (solo consulta especímenes). Cada rol tiene permisos tanto en el panel como en la API; solo el Administrador puede administrar usuarios y editar las demás secciones. En las secciones editables se puede importar/exportar CSV; las fotos se suben en PNG, JPG o WEBP.
 
 **Cifras** no se edita a mano: se calcula con los especímenes (el número de «Ejemplares tipo» sale de la casilla «Es ejemplar tipo» de cada espécimen).
 

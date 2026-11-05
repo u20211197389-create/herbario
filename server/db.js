@@ -18,7 +18,8 @@ db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 db.exec(`
 CREATE TABLE IF NOT EXISTS users (
   id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
-  passwordHash TEXT NOT NULL, createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
+  passwordHash TEXT NOT NULL, role TEXT NOT NULL DEFAULT 'administrador',
+  createdAt TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP);
 CREATE TABLE IF NOT EXISTS sessions (
   tokenHash TEXT PRIMARY KEY, userId INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, expiresAt INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL DEFAULT '');
@@ -33,6 +34,9 @@ CREATE TABLE IF NOT EXISTS image_requests (
 `);
 if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'displayName')) {
   db.exec("ALTER TABLE users ADD COLUMN displayName TEXT NOT NULL DEFAULT ''; ALTER TABLE users ADD COLUMN email TEXT NOT NULL DEFAULT ''; ALTER TABLE users ADD COLUMN avatar TEXT NOT NULL DEFAULT '';");
+}
+if (!db.prepare('PRAGMA table_info(users)').all().some((c) => c.name === 'role')) {
+  db.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'administrador'");
 }
 if (!db.prepare('PRAGMA table_info(image_requests)').all().some((c) => c.name === 'kind')) {
   db.exec("ALTER TABLE image_requests ADD COLUMN kind TEXT NOT NULL DEFAULT 'imagen'");

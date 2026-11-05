@@ -193,18 +193,23 @@ const renderEntity = async (entity) => {
   const rows = await api('GET', `/api/admin/${entity}`);
   const search = el('input', { type: 'search', placeholder: 'Buscar…', 'aria-label': 'Buscar' });
   const body = el('tbody');
+  const canEdit = canEditEntity(entity);
+  const canDelete = canDeleteEntity(entity);
   const label = (name) => section.fields.find((f) => f.name === name)?.label || name;
   const draw = () => {
     const q = search.value.trim().toLowerCase();
     const shown = rows.filter((r) => !q || Object.values(r).join(' ').toLowerCase().includes(q));
-    body.replaceChildren(...shown.map((r) => el('tr', {},
-      ...section.columns.map((c) => el('td', {}, section.fields.find((f) => f.name === c)?.type === 'bool' ? (r[c] ? 'Sí' : '') : String(r[c] ?? ''))),
-      el('td', { class: 'actions' },
-        el('button', { class: 'btn small ghost', type: 'button', onclick: () => openForm(section, r, () => renderEntity(entity).catch(fail)) }, 'Editar'),
-        el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
-          if (!confirm(`¿Eliminar este ${section.singular}? Esta acción no se puede deshacer.`)) return;
-          try { await api('DELETE', `/api/admin/${entity}/${encodeURIComponent(r[section.key])}`); toast('Eliminado.'); renderEntity(entity).catch(fail); } catch (e) { fail(e); }
-        } }, 'Eliminar')))));
+    body.replaceChildren(...shown.map((r) => {
+      const actions = [];
+      if (canEdit) actions.push(el('button', { class: 'btn small ghost', type: 'button', onclick: () => openForm(section, r, () => renderEntity(entity).catch(fail)) }, 'Editar'));
+      if (canDelete) actions.push(el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
+        if (!confirm(`¿Eliminar este ${section.singular}? Esta acción no se puede deshacer.`)) return;
+        try { await api('DELETE', `/api/admin/${entity}/${encodeURIComponent(r[section.key])}`); toast('Eliminado.'); renderEntity(entity).catch(fail); } catch (e) { fail(e); }
+      } }, 'Eliminar'));
+      return el('tr', {},
+        ...section.columns.map((c) => el('td', {}, section.fields.find((f) => f.name === c)?.type === 'bool' ? (r[c] ? 'Sí' : '') : String(r[c] ?? ''))),
+        el('td', { class: 'actions' }, ...actions));
+    }));
     if (!shown.length) body.replaceChildren(el('tr', {}, el('td', { colSpan: section.columns.length + 1, class: 'empty' }, 'Sin registros.')));
     count.textContent = `${shown.length} de ${rows.length}`;
   };
@@ -242,14 +247,18 @@ const renderEntity = async (entity) => {
   } });
   const log = el('pre', { class: 'log', hidden: true });
   const names = section.fields.map((f) => f.name);
+  const toolbar = [search];
+  if (canEdit) {
+    toolbar.push(el('button', { class: 'btn', type: 'button', onclick: () => openForm(section, null, () => renderEntity(entity).catch(fail)) }, `+ Nuevo ${section.singular}`));
+    toolbar.push(el('button', { class: 'btn ghost', type: 'button', onclick: () => importInput.click() }, 'Importar CSV'));
+  }
+  toolbar.push(
+    el('button', { class: 'btn ghost', type: 'button', onclick: () => download(`${entity}-plantilla.csv`, `${names.join(',')}\n`) }, 'Plantilla CSV'),
+    el('button', { class: 'btn ghost', type: 'button', onclick: () => download(`${entity}.csv`, [names.join(','), ...rows.map((r) => names.map((n) => csvCell(String(r[n] ?? ''))).join(','))].join('\n')) }, 'Exportar CSV'),
+    importInput, count);
   panel.replaceChildren(
     el('h2', {}, section.title), el('p', { class: 'hint' }, section.hint),
-    el('div', { class: 'toolbar' }, search,
-      el('button', { class: 'btn', type: 'button', onclick: () => openForm(section, null, () => renderEntity(entity).catch(fail)) }, `+ Nuevo ${section.singular}`),
-      el('button', { class: 'btn ghost', type: 'button', onclick: () => importInput.click() }, 'Importar CSV'),
-      el('button', { class: 'btn ghost', type: 'button', onclick: () => download(`${entity}-plantilla.csv`, `${names.join(',')}\n`) }, 'Plantilla CSV'),
-      el('button', { class: 'btn ghost', type: 'button', onclick: () => download(`${entity}.csv`, [names.join(','), ...rows.map((r) => names.map((n) => csvCell(String(r[n] ?? ''))).join(','))].join('\n')) }, 'Exportar CSV'),
-      importInput, count),
+    el('div', { class: 'toolbar' }, ...toolbar),
     el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, ...section.columns.map((c) => el('th', {}, label(c))), el('th', {}, ''))), body)),
     log,
   );
@@ -333,6 +342,11 @@ const renderSettings = (title, hint, fields, extra) => async () => {
       }
     } catch { /* se deja vacío */ }
   }
+  if (!isAdmin()) {
+    const cards = fields.map(([key, label]) => el('div', { class: 'card' }, el('h3', {}, label), el('p', {}, data[key] || 'Sin información.')));
+    $('panel').replaceChildren(el('h2', {}, title), el('p', { class: 'hint' }, hint), extra ? extra() : '', ...cards);
+    return;
+  }
   const inputs = {};
   const form = el('form', { class: 'card' });
   for (const [key, label, type] of fields) {
@@ -365,19 +379,20 @@ const renderCifras = async () => {
 
 const renderUsers = async () => {
   const users = await api('GET', '/api/admin/users');
-  const body = el('tbody', {}, ...users.map((u) => el('tr', {}, el('td', {}, u.username), el('td', {}, u.createdAt),
+  const body = el('tbody', {}, ...users.map((u) => el('tr', {}, el('td', {}, u.username), el('td', {}, ROLE_LABELS[u.role] || 'Administrador'), el('td', {}, u.createdAt),
     el('td', { class: 'actions' }, el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
       if (!confirm(`¿Eliminar al usuario ${u.username}?`)) return;
       try { await api('DELETE', `/api/admin/users/${u.id}`); toast('Usuario eliminado.'); renderUsers().catch(fail); } catch (e) { fail(e); }
     } }, 'Eliminar')))));
   const nu = el('input', { required: true, maxLength: 60, autocomplete: 'off' });
   const np = el('input', { type: 'password', required: true, maxLength: 200, autocomplete: 'new-password' });
-  const addForm = el('form', { class: 'card' }, el('h3', {}, 'Nuevo administrador'),
-    el('div', { class: 'grid' }, el('label', {}, 'Correo', nu), el('label', {}, 'Contraseña (mín. 10, letras y números)', np)),
+  const role = el('select', {}, ...Object.entries(ROLE_LABELS).map(([value, label]) => el('option', { value }, label)));
+  const addForm = el('form', { class: 'card' }, el('h3', {}, 'Nuevo usuario'),
+    el('div', { class: 'grid' }, el('label', {}, 'Correo o nombre de usuario', nu), el('label', {}, 'Tipo de usuario', role), el('label', {}, 'Contraseña (mín. 10, letras y números)', np)),
     el('div', { class: 'row' }, el('button', { class: 'btn', type: 'submit' }, 'Crear')));
   addForm.onsubmit = async (ev) => {
     ev.preventDefault();
-    try { await api('POST', '/api/admin/users', { username: nu.value, password: np.value }); toast('Usuario creado.'); renderUsers().catch(fail); } catch (e) { fail(e); }
+    try { await api('POST', '/api/admin/users', { username: nu.value, password: np.value, role: role.value }); toast('Usuario creado.'); renderUsers().catch(fail); } catch (e) { fail(e); }
   };
   const cur = el('input', { type: 'password', required: true, maxLength: 200, autocomplete: 'current-password' });
   const nxt = el('input', { type: 'password', required: true, maxLength: 200, autocomplete: 'new-password' });
@@ -388,13 +403,14 @@ const renderUsers = async () => {
     ev.preventDefault();
     try { await api('POST', '/api/admin/password', { current: cur.value, next: nxt.value }); cur.value = ''; nxt.value = ''; toast('Contraseña cambiada.'); } catch (e) { fail(e); }
   };
-  $('panel').replaceChildren(el('h2', {}, 'Usuarios administradores'),
-    el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Correo'), el('th', {}, 'Creado'), el('th', {}, ''))), body)),
+  $('panel').replaceChildren(el('h2', {}, 'Usuarios'),
+    el('div', { class: 'table-wrap' }, el('table', {}, el('thead', {}, el('tr', {}, el('th', {}, 'Correo o usuario'), el('th', {}, 'Tipo'), el('th', {}, 'Creado'), el('th', {}, ''))), body)),
     el('br'), addForm, pwForm);
 };
 
 let requestFilter = 'todas';
 const renderRequests = async () => {
+  const editable = isAdmin();
   const all = await api('GET', '/api/admin/solicitudes');
   const rows = requestFilter === 'todas' ? all : all.filter((r) => r.kind === requestFilter);
   const pending = all.filter((r) => r.status === 'pendiente').length;
@@ -422,14 +438,17 @@ const renderRequests = async () => {
     } }, 'Copiar');
     return el('td', {}, expired ? `Venció ${new Date(r.expiresAt).toLocaleDateString()}` : el('div', { class: 'row' }, input, copy));
   };
-  const body = el('tbody', {}, ...rows.map((r) => el('tr', {}, el('td', {}, r.createdAt), el('td', {}, `${r.kind === 'descarga' ? 'Descarga: ' : 'Imagen: '}${r.catalogNumber}`), el('td', {}, r.email), el('td', {}, r.reason),
-    el('td', {}, r.status), linkCell(r),
-    el('td', { class: 'actions' },
+  const body = el('tbody', {}, ...rows.map((r) => {
+    const actions = editable ? [
       ...(r.status === 'pendiente' ? [el('button', { class: 'btn small', type: 'button', onclick: () => decide(r.id, 'aprobada') }, 'Aprobar'), el('button', { class: 'btn small danger', type: 'button', onclick: () => decide(r.id, 'rechazada') }, 'Rechazar')] : []),
       el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
         if (!confirm('¿Eliminar esta solicitud?')) return;
         try { await api('DELETE', `/api/admin/solicitudes/${r.id}`); renderRequests().catch(fail); } catch (e) { fail(e); }
-      } }, 'Eliminar')))));
+      } }, 'Eliminar'),
+    ] : [];
+    return el('tr', {}, el('td', {}, r.createdAt), el('td', {}, `${r.kind === 'descarga' ? 'Descarga: ' : 'Imagen: '}${r.catalogNumber}`), el('td', {}, r.email), el('td', {}, r.reason),
+      el('td', {}, r.status), linkCell(r), el('td', { class: 'actions' }, ...actions));
+  }));
   $('panel').replaceChildren(el('h2', {}, 'Solicitudes de imagen y descarga'),
     el('div', { class: 'row' },
       el('label', {}, 'Mostrar ', el('select', { onchange: (ev) => { requestFilter = ev.target.value; renderRequests().catch(fail); } },
@@ -452,17 +471,18 @@ const renderServices = async () => {
     } catch { /* sin contenido inicial */ }
   }
   const area = el('textarea', { class: 'tour-text', value: text, maxLength: 20000, rows: 18 });
+  if (!isAdmin()) area.disabled = true;
   const grid = el('div', { class: 'tour-admin-grid' });
   const draw = () => {
     grid.replaceChildren(...images.map((src, i) => el('figure', {},
       el('img', { src, alt: `Foto ${i + 1}`, loading: 'lazy' }),
-      el('div', { class: 'tour-admin-actions' },
+      isAdmin() ? el('div', { class: 'tour-admin-actions' },
         el('button', { class: 'btn small', type: 'button', title: 'Mover antes', disabled: i === 0, onclick: () => { [images[i - 1], images[i]] = [images[i], images[i - 1]]; draw(); } }, '←'),
         el('button', { class: 'btn small', type: 'button', title: 'Mover después', disabled: i === images.length - 1, onclick: () => { [images[i + 1], images[i]] = [images[i], images[i + 1]]; draw(); } }, '→'),
-        el('button', { class: 'btn small danger', type: 'button', onclick: () => { images.splice(i, 1); draw(); } }, 'Eliminar')))));
+        el('button', { class: 'btn small danger', type: 'button', onclick: () => { images.splice(i, 1); draw(); } }, 'Eliminar')) : null)));
     if (!images.length) grid.append(el('p', { class: 'hint' }, 'Sin imágenes: la página pública mostrará las fotos originales del tour.'));
   };
-  const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple: true, onchange: async () => {
+  const file = el('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple: true, disabled: !isAdmin(), onchange: async () => {
     try {
       for (const f of file.files) {
         const { url } = await api('POST', '/api/admin/upload', undefined, await shrinkImage(f));
@@ -473,9 +493,9 @@ const renderServices = async () => {
     file.value = '';
   } });
   draw();
-  const save = el('button', { class: 'btn', type: 'button', onclick: async () => {
+  const save = isAdmin() ? el('button', { class: 'btn', type: 'button', onclick: async () => {
     try { await api('PUT', '/api/admin/settings', { tourText: area.value, tourImages: images.join('\n') }); toast('Guardado.'); } catch (e) { fail(e); }
-  } }, 'Guardar cambios');
+  } }, 'Guardar cambios') : null;
   $('panel').replaceChildren(el('h2', {}, 'Servicios'),
     el('p', { class: 'hint' }, 'Contenido de la página «Tour científico» (Servicios → Ver el tour).'),
     el('div', { class: 'card' },
@@ -495,7 +515,9 @@ const TABS = [
 ];
 
 const openTab = (id) => {
-  const tab = TABS.find((t) => t[0] === id) || TABS[0];
+  const available = visibleTabs();
+  const tab = available.find((t) => t[0] === id) || available[0];
+  if (!tab) return;
   document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === tab[0]));
   sessionStorage.setItem('adminTab', tab[0]);
   tab[2]().catch(fail);
@@ -503,21 +525,34 @@ const openTab = (id) => {
 
 const showLogin = () => { $('app-view').hidden = true; $('login-view').hidden = false; $('login-pass').value = ''; };
 let me = {};
+const ROLE_LABELS = { administrador: 'Administrador', curador: 'Curador', pasante: 'Pasante', auxiliar: 'Auxiliar', monitor: 'Monitor' };
+const isAdmin = () => me.role === 'administrador';
+const canEditEntity = (entity) => isAdmin() || (entity === 'specimens' && ['curador', 'pasante', 'auxiliar'].includes(me.role));
+const canDeleteEntity = (entity) => isAdmin() || (entity === 'specimens' && me.role === 'curador');
+const visibleTabs = () => TABS.filter(([id]) => isAdmin()
+  || me.role === 'curador' && id !== 'users'
+  || ['pasante', 'auxiliar', 'monitor'].includes(me.role) && id === 'specimens');
 const paintAvatar = (node, text) => {
   node.replaceChildren(me.avatar ? el('img', { src: me.avatar, alt: '' }) : text);
 };
 const applyProfile = () => {
   const shown = me.displayName || me.username || '?';
   $('who').textContent = shown;
+  $('role-label').textContent = ROLE_LABELS[me.role] || 'Administrador';
   const ini = shown.charAt(0).toUpperCase();
   paintAvatar($('avatar'), ini); paintAvatar($('avatar2'), ini);
 };
 const showApp = (profile) => {
   me = profile;
+  if (!ROLE_LABELS[me.role]) me.role = 'administrador';
   $('login-view').hidden = true; $('app-view').hidden = false;
   applyProfile();
-  $('tabs').replaceChildren(...TABS.map(([id, label]) => el('button', { type: 'button', textContent: label, onclick: () => openTab(id) }, )));
-  $('tabs').querySelectorAll('button').forEach((b, i) => { b.dataset.tab = TABS[i][0]; });
+  const tabs = visibleTabs().map(([id, label]) => {
+    const button = el('button', { type: 'button', textContent: label, onclick: () => openTab(id) });
+    button.dataset.tab = id;
+    return button;
+  });
+  $('tabs').replaceChildren(...tabs);
   openTab(sessionStorage.getItem('adminTab'));
 };
 
