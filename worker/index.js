@@ -339,7 +339,7 @@ const handleApi = async (request, env, url) => {
 
   if (route === '/api/admin/users') {
     if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar usuarios.');
-    if (method === 'GET') return json(200, (await env.DB.prepare('SELECT id, username, role, createdAt FROM users ORDER BY id').all()).results);
+    if (method === 'GET') return json(200, (await env.DB.prepare('SELECT id, username, displayName, email, avatar, role, createdAt FROM users ORDER BY id').all()).results);
     if (method === 'POST') {
       const { username, password, role } = await readJson(request, 10_000);
       const name = String(username || '').trim();
@@ -354,6 +354,23 @@ const handleApi = async (request, env, url) => {
     }
   }
   const userMatch = route.match(/^\/api\/admin\/users\/(\d+)$/);
+  if (userMatch && method === 'PUT') {
+    if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar usuarios.');
+    const id = Number(userMatch[1]);
+    const target = await env.DB.prepare('SELECT role FROM users WHERE id = ?').bind(id).first();
+    if (!target) throw new HttpError(404, 'Usuario no encontrado.');
+    const b = await readJson(request, 100_000);
+    const p = parseProfile(b);
+    const newRole = String(b.role || target.role);
+    if (!['administrador', 'curador', 'pasante', 'auxiliar', 'monitor'].includes(newRole)) throw new HttpError(400, 'Seleccione un tipo de usuario válido.');
+    if (target.role === 'administrador' && newRole !== 'administrador' && (await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE role = 'administrador'").first()).n <= 1) throw new HttpError(400, 'Debe quedar al menos un administrador.');
+    if (await env.DB.prepare('SELECT id FROM users WHERE username = ? AND id <> ?').bind(p.username, id).first()) throw new HttpError(409, 'Ese usuario ya existe.');
+    const pass = String(b.password || '');
+    if (pass) { const problem = passwordProblem(pass); if (problem) throw new HttpError(400, problem); }
+    await env.DB.prepare('UPDATE users SET username = ?, displayName = ?, email = ?, avatar = ?, role = ? WHERE id = ?').bind(p.username, p.displayName, p.email, p.avatar, newRole, id).run();
+    if (pass) await env.DB.prepare('UPDATE users SET passwordHash = ? WHERE id = ?').bind(await hashPassword(pass), id).run();
+    return json(200, { ok: true });
+  }
   if (userMatch && method === 'DELETE') {
     if (user.role !== 'administrador') throw new HttpError(403, 'Solo un administrador puede gestionar usuarios.');
     const id = Number(userMatch[1]);

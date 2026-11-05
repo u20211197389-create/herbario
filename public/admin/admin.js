@@ -379,8 +379,8 @@ const renderCifras = async () => {
 
 const renderUsers = async () => {
   const users = await api('GET', '/api/admin/users');
-  const body = el('tbody', {}, ...users.map((u) => el('tr', {}, el('td', {}, u.username), el('td', {}, ROLE_LABELS[u.role] || 'Administrador'), el('td', {}, u.createdAt),
-    el('td', { class: 'actions' }, el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
+  const body = el('tbody', {}, ...users.map((u) => el('tr', {}, el('td', {}, u.displayName ? u.displayName + ' (' + u.username + ')' : u.username), el('td', {}, ROLE_LABELS[u.role] || 'Administrador'), el('td', {}, u.createdAt),
+    el('td', { class: 'actions' }, el('button', { class: 'btn small', type: 'button', onclick: () => openProfile(u, true) }, 'Editar'), ' ', el('button', { class: 'btn small danger', type: 'button', onclick: async () => {
       if (!confirm(`¿Eliminar al usuario ${u.username}?`)) return;
       try { await api('DELETE', `/api/admin/users/${u.id}`); toast('Usuario eliminado.'); renderUsers().catch(fail); } catch (e) { fail(e); }
     } }, 'Eliminar')))));
@@ -575,11 +575,11 @@ const avatarFromFile = async (file) => {
   return canvas.toDataURL('image/jpeg', 0.85);
 };
 
-const openProfile = () => {
-  let avatar = me.avatar || '';
+const openProfile = (target = me, managed = false) => {
+  let avatar = target.avatar || '';
   const preview = el('span', { class: 'avatar xl' });
   const refresh = () => {
-    const name = (user.value || me.username || '?').charAt(0).toUpperCase();
+    const name = (user.value || target.username || '?').charAt(0).toUpperCase();
     preview.replaceChildren(avatar ? el('img', { src: avatar, alt: '' }) : name);
     remove.hidden = !avatar;
   };
@@ -589,15 +589,21 @@ const openProfile = () => {
     if (!file.files[0]) return;
     try { avatar = await avatarFromFile(file.files[0]); refresh(); } catch { toast('No se pudo leer la imagen.', true); }
   });
-  const user = el('input', { name: 'username', type: 'email', value: me.username, required: true, maxLength: 60, autocomplete: 'username', placeholder: 'correo@usco.edu.co' });
-  const dname = el('input', { name: 'displayName', value: me.displayName || '', maxLength: 80, placeholder: 'Ej: Juan Pérez' });
+  const user = el('input', { name: 'username', type: 'email', value: target.username, required: true, maxLength: 60, autocomplete: 'username', placeholder: 'correo@usco.edu.co' });
+  const dname = el('input', { name: 'displayName', value: target.displayName || '', maxLength: 80, placeholder: 'Ej: Juan Pérez' });
   user.addEventListener('input', refresh);
+  const roleSel = el('select', {}, ...Object.entries(ROLE_LABELS).map(([value, label]) => el('option', { value, selected: value === target.role }, label)));
+  const curPass = el('input', { type: 'password', maxLength: 200, autocomplete: 'current-password' });
+  const newPass = el('input', { type: 'password', maxLength: 200, autocomplete: 'new-password' });
+  const passFields = managed
+    ? [el('label', {}, 'Tipo de usuario', roleSel), el('label', {}, 'Nueva contraseña (dejar vacío para no cambiarla)', newPass)]
+    : [el('label', {}, 'Contraseña actual (solo si desea cambiarla)', curPass), el('label', {}, 'Contraseña nueva (mín. 10, letras y números)', newPass)];
   editorForm.replaceChildren(
-    el('h2', {}, 'Editar perfil'),
+    el('h2', {}, managed ? 'Editar usuario' : 'Editar perfil'),
     el('div', { class: 'profile-photo' }, preview, el('div', {}, el('button', { class: 'btn', type: 'button', onclick: () => file.click() }, 'Cambiar foto'), ' ', remove, el('small', {}, 'Se recorta en cuadrado. PNG, JPG o WEBP.')), file),
     el('label', {}, 'Nombre para mostrar', dname),
     el('label', {}, 'Correo (para ingresar)', user),
-    el('p', {}, el('button', { class: 'btn ghost', type: 'button', onclick: () => { editor.close(); openTab('users'); } }, 'Cambiar contraseña')),
+    ...passFields,
     el('div', { class: 'actions' },
       el('button', { class: 'btn ghost', type: 'button', onclick: () => editor.close() }, 'Cancelar'),
       el('button', { class: 'btn', type: 'submit' }, 'Guardar')),
@@ -605,7 +611,14 @@ const openProfile = () => {
   editorForm.onsubmit = async (ev) => {
     ev.preventDefault();
     try {
-      const saved = await api('PUT', '/api/admin/profile', { username: user.value, displayName: dname.value, email: user.value, avatar });
+      const data = { username: user.value, displayName: dname.value, email: user.value, avatar };
+      if (managed) {
+        await api('PUT', `/api/admin/users/${target.id}`, { ...data, role: roleSel.value, password: newPass.value });
+        editor.close(); toast('Usuario actualizado.'); renderUsers().catch(fail); return;
+      }
+      if (newPass.value && !curPass.value) throw new Error('Escriba su contraseña actual para cambiarla.');
+      const saved = await api('PUT', '/api/admin/profile', data);
+      if (newPass.value) await api('POST', '/api/admin/password', { current: curPass.value, next: newPass.value });
       me = { ...me, ...saved }; applyProfile(); editor.close(); toast('Perfil actualizado.');
     } catch (e) { fail(e); }
   };
@@ -617,7 +630,7 @@ const closeUserMenu = () => { $('user-pop').hidden = true; $('user-btn').setAttr
 $('user-btn').addEventListener('click', (e) => { e.stopPropagation(); const open = $('user-pop').hidden; $('user-pop').hidden = !open; $('user-btn').setAttribute('aria-expanded', String(open)); });
 document.addEventListener('click', (e) => { if (!e.target.closest('.usermenu')) closeUserMenu(); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeUserMenu(); });
-$('menu-pass').addEventListener('click', () => { closeUserMenu(); openTab('users'); });
+$('menu-pass').addEventListener('click', () => { closeUserMenu(); openProfile(); });
 $('logout').addEventListener('click', async () => { closeUserMenu(); try { await api('POST', '/api/logout'); } catch { /* sesión ya cerrada */ } showLogin(); });
 
 function addPasswordToggles(root) {
